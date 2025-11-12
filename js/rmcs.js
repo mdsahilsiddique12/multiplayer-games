@@ -1,142 +1,144 @@
-let roomId = '';
-let playerName = '';
-let role = '';
-let revealedPlayers = [];
+document.addEventListener("DOMContentLoaded", function() {
+  let roomId = '';
+  let playerName = '';
+  let role = '';
+  let revealedPlayers = [];
 
-document.getElementById('createRoom').onclick = () => {
-  playerName = document.getElementById('playerName').value.trim();
-  if (!playerName) return alert('Please enter your name');
-  firebase.auth().onAuthStateChanged(async user => {
-    if (!user) return alert('Wait till you are authenticated');
-    try {
-      const doc = await db.collection('rmcs_rooms').add({
-        host: playerName,
-        players: [{ name: playerName, id: user.uid }],
-        state: 'waiting',
-        created: Date.now()
-      });
-      roomId = doc.id;
-      showRoom(roomId);
-    } catch (error) {
-      alert('Room creation error: ' + error.message);
-    }
-  });
-};
-
-document.getElementById('joinRoom').onclick = () => {
-  playerName = document.getElementById('playerName').value.trim();
-  const code = document.getElementById('joinCode').value.trim();
-  if (!playerName || !code) return alert('Please enter name and room code');
-  firebase.auth().onAuthStateChanged(async user => {
-    if (!user) return alert('Wait till you are authenticated');
-    const docRef = db.collection('rmcs_rooms').doc(code);
-    const doc = await docRef.get();
-    if (!doc.exists) return alert('Room not found');
-    if (!doc.data().players.some(p => p.id === user.uid)) {
-      await docRef.update({
-        players: firebase.firestore.FieldValue.arrayUnion({ name: playerName, id: user.uid })
-      });
-    }
-    roomId = code;
-    showRoom(roomId);
-  });
-};
-
-function showRoom(roomCode) {
-  const contentDiv = document.getElementById('gameContent');
-  contentDiv.innerHTML = `
-    <h2>Room Code: ${roomCode}</h2>
-    <div id="playersList"></div>
-    <button id="startGame" class="btn btn-primary">Start Game</button>
-  `;
-  document.getElementById('startGame').onclick = startGame;
-
-  // Listen for players
-  db.collection('rmcs_rooms').doc(roomCode)
-    .onSnapshot(doc => {
-      const data = doc.data();
-      let html = '<h3>Players:</h3>';
-      data.players.forEach(p => {
-        html += `<div class="player-card">${p.name}</div>`;
-      });
-      document.getElementById('playersList').innerHTML = html;
-      if(data.state === 'playing') {
-        playRound(data);
+  document.getElementById('createRoom').onclick = () => {
+    playerName = document.getElementById('playerName').value.trim();
+    if (!playerName) return alert('Please enter your name');
+    firebase.auth().onAuthStateChanged(async user => {
+      if (!user) return alert('Wait till you are authenticated');
+      try {
+        const doc = await db.collection('rmcs_rooms').add({
+          host: playerName,
+          players: [{ name: playerName, id: user.uid }],
+          state: 'waiting',
+          created: Date.now()
+        });
+        roomId = doc.id;
+        showRoom(roomId);
+      } catch (error) {
+        alert('Room creation error: ' + error.message);
       }
     });
-}
+  };
 
-async function startGame() {
-  await db.collection('rmcs_rooms').doc(roomId).update({
-    state: 'playing',
-    round: 1,
-    maxRounds: 5
-  });
-}
+  document.getElementById('joinRoom').onclick = () => {
+    playerName = document.getElementById('playerName').value.trim();
+    const code = document.getElementById('joinCode').value.trim();
+    if (!playerName || !code) return alert('Please enter name and room code');
+    firebase.auth().onAuthStateChanged(async user => {
+      if (!user) return alert('Wait till you are authenticated');
+      const docRef = db.collection('rmcs_rooms').doc(code);
+      const doc = await docRef.get();
+      if (!doc.exists) return alert('Room not found');
+      if (!doc.data().players.some(p => p.id === user.uid)) {
+        await docRef.update({
+          players: firebase.firestore.FieldValue.arrayUnion({ name: playerName, id: user.uid })
+        });
+      }
+      roomId = code;
+      showRoom(roomId);
+    });
+  };
 
-async function playRound(data) {
-  // Assign roles randomly for simplicity
-  const players = data.players;
-  const roles = ['Raja', 'Mantri', 'Chor', 'Sipahi'];
-  const shuffled = roles.concat(
-    new Array(players.length - roles.length).fill('Villager')
-  ).sort(() => Math.random() - 0.5);
-  let playerRole = '';
-  players.forEach((player, idx) => {
-    if (player.id === firebase.auth().currentUser.uid) playerRole = shuffled[idx];
-  });
+  function showRoom(roomCode) {
+    const contentDiv = document.getElementById('gameContent');
+    contentDiv.innerHTML = `
+      <h2>Room Code: ${roomCode}</h2>
+      <div id="playersList"></div>
+      <button id="startGame" class="btn btn-primary">Start Game</button>
+    `;
+    document.getElementById('startGame').onclick = startGame;
 
-  const contentDiv = document.getElementById('gameContent');
-  contentDiv.innerHTML = `
-    <div class="role-card">
-      <h2>Your Role: ${playerRole}</h2>
-      <button id="revealBtn" class="btn btn-primary">Reveal Role</button>
-    </div>
-    <div id="gameStatus"></div>
-  `;
+    // Listen for players
+    db.collection('rmcs_rooms').doc(roomCode)
+      .onSnapshot(doc => {
+        const data = doc.data();
+        let html = '<h3>Players:</h3>';
+        data.players.forEach(p => {
+          html += `<div class="player-card">${p.name}</div>`;
+        });
+        document.getElementById('playersList').innerHTML = html;
+        if(data.state === 'playing') {
+          playRound(data);
+        }
+      });
+  }
 
-  document.getElementById('revealBtn').onclick = async () => {
-    const unrevealed = data.revealedPlayers || [];
-    if (unrevealed.some(p => p.id === firebase.auth().currentUser.uid)) {
-      alert('Already revealed!');
-      return;
-    }
+  async function startGame() {
     await db.collection('rmcs_rooms').doc(roomId).update({
-      revealedPlayers: firebase.firestore.FieldValue.arrayUnion({ id: firebase.auth().currentUser.uid, role:playerRole })
+      state: 'playing',
+      round: 1,
+      maxRounds: 5
     });
-  };
+  }
 
-  db.collection('rmcs_rooms').doc(roomId).onSnapshot(doc => {
-    const snapshotData = doc.data();
-    const revealed = snapshotData.revealedPlayers || [];
-    if (revealed.length >= 2) {
-      const revealedText = revealed.map(r => `${r.role}`).join(', ');
-      document.getElementById('gameStatus').innerText = `Revealed roles: ${revealedText}. Sipahi, guess the thief!`;
-      guessUI(contentDiv);
-    }
-  });
-}
-
-function guessUI(container) {
-  container.innerHTML += `
-    <input id="guessInput" placeholder="Enter thief name" class="input-field" />
-    <button id="guessBtn" class="btn btn-success">Guess</button>
-    <div id="guessResult"></div>
-  `;
-  document.getElementById('guessBtn').onclick = async () => {
-    const guess = document.getElementById('guessInput').value.trim();
-    if (!guess) return alert('Enter a name to guess!');
-    const doc = await db.collection('rmcs_rooms').doc(roomId).get();
-    const data = doc.data();
-    const thief = data.players.find(player => {
-      const revealer = (data.revealedPlayers || []).find(r => r.id === player.id);
-      return revealer && revealer.role === 'Chor';
+  async function playRound(data) {
+    // Assign roles randomly for simplicity
+    const players = data.players;
+    const roles = ['Raja', 'Mantri', 'Chor', 'Sipahi'];
+    const shuffled = roles.concat(
+      new Array(players.length - roles.length).fill('Villager')
+    ).sort(() => Math.random() - 0.5);
+    let playerRole = '';
+    players.forEach((player, idx) => {
+      if (player.id === firebase.auth().currentUser.uid) playerRole = shuffled[idx];
     });
-    const resultDiv = document.getElementById('guessResult');
-    if (thief && guess === thief.name) {
-      resultDiv.innerText = 'Correct! You caught the thief.';
-    } else {
-      resultDiv.innerText = 'Wrong! The thief gets away.';
-    }
-  };
-}
+
+    const contentDiv = document.getElementById('gameContent');
+    contentDiv.innerHTML = `
+      <div class="role-card">
+        <h2>Your Role: ${playerRole}</h2>
+        <button id="revealBtn" class="btn btn-primary">Reveal Role</button>
+      </div>
+      <div id="gameStatus"></div>
+    `;
+
+    document.getElementById('revealBtn').onclick = async () => {
+      const unrevealed = data.revealedPlayers || [];
+      if (unrevealed.some(p => p.id === firebase.auth().currentUser.uid)) {
+        alert('Already revealed!');
+        return;
+      }
+      await db.collection('rmcs_rooms').doc(roomId).update({
+        revealedPlayers: firebase.firestore.FieldValue.arrayUnion({ id: firebase.auth().currentUser.uid, role:playerRole })
+      });
+    };
+
+    db.collection('rmcs_rooms').doc(roomId).onSnapshot(doc => {
+      const snapshotData = doc.data();
+      const revealed = snapshotData.revealedPlayers || [];
+      if (revealed.length >= 2) {
+        const revealedText = revealed.map(r => `${r.role}`).join(', ');
+        document.getElementById('gameStatus').innerText = `Revealed roles: ${revealedText}. Sipahi, guess the thief!`;
+        guessUI(contentDiv);
+      }
+    });
+  }
+
+  function guessUI(container) {
+    container.innerHTML += `
+      <input id="guessInput" placeholder="Enter thief name" class="input-field" />
+      <button id="guessBtn" class="btn btn-success">Guess</button>
+      <div id="guessResult"></div>
+    `;
+    document.getElementById('guessBtn').onclick = async () => {
+      const guess = document.getElementById('guessInput').value.trim();
+      if (!guess) return alert('Enter a name to guess!');
+      const doc = await db.collection('rmcs_rooms').doc(roomId).get();
+      const data = doc.data();
+      const thief = data.players.find(player => {
+        const revealer = (data.revealedPlayers || []).find(r => r.id === player.id);
+        return revealer && revealer.role === 'Chor';
+      });
+      const resultDiv = document.getElementById('guessResult');
+      if (thief && guess === thief.name) {
+        resultDiv.innerText = 'Correct! You caught the thief.';
+      } else {
+        resultDiv.innerText = 'Wrong! The thief gets away.';
+      }
+    };
+  }
+});
