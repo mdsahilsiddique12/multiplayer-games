@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", function() {
   let role = '';
   let revealedPlayers = [];
 
+  // Create room handler
   document.getElementById('createRoom').onclick = () => {
     playerName = document.getElementById('playerName').value.trim();
     if (!playerName) return alert('Please enter your name');
@@ -24,15 +25,17 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   };
 
+  // Join room handler
   document.getElementById('joinRoom').onclick = () => {
     playerName = document.getElementById('playerName').value.trim();
     const code = document.getElementById('joinCode').value.trim();
-    if (!playerName || !code) return alert('Please enter name and room code');
+    if (!playerName || !code) return alert('Please enter both a name and room code');
     firebase.auth().onAuthStateChanged(async user => {
       if (!user) return alert('Wait till you are authenticated');
       const docRef = db.collection('rmcs_rooms').doc(code);
       const doc = await docRef.get();
       if (!doc.exists) return alert('Room not found');
+      // Add player only if not already present
       if (!doc.data().players.some(p => p.id === user.uid)) {
         await docRef.update({
           players: firebase.firestore.FieldValue.arrayUnion({ name: playerName, id: user.uid })
@@ -43,6 +46,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   };
 
+  // Display room and players, allow game start if enough
   function showRoom(roomCode) {
     const contentDiv = document.getElementById('gameContent');
     contentDiv.innerHTML = `
@@ -52,22 +56,29 @@ document.addEventListener("DOMContentLoaded", function() {
     `;
     document.getElementById('startGame').onclick = startGame;
 
-    // Listen for players
+    // Listen for changes and update UI
     db.collection('rmcs_rooms').doc(roomCode)
       .onSnapshot(doc => {
         const data = doc.data();
-        let html = '<h3>Players:</h3>';
+        let html = '<h3>Players in Room:</h3>';
         data.players.forEach(p => {
           html += `<div class="player-card">${p.name}</div>`;
         });
         document.getElementById('playersList').innerHTML = html;
-        if(data.state === 'playing') {
+        if (data.state === 'playing') {
           playRound(data);
         }
       });
   }
 
+  // Start the game, check enough players
   async function startGame() {
+    const doc = await db.collection('rmcs_rooms').doc(roomId).get();
+    const data = doc.data();
+    if (!data.players || data.players.length < 4) {
+      alert('At least 4 players are required to start!');
+      return;
+    }
     await db.collection('rmcs_rooms').doc(roomId).update({
       state: 'playing',
       round: 1,
@@ -75,18 +86,29 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
+  // Actual role assignment and gameplay
   async function playRound(data) {
-    // Assign roles randomly for simplicity
     const players = data.players;
     const roles = ['Raja', 'Mantri', 'Chor', 'Sipahi'];
-    const shuffled = roles.concat(
-      new Array(players.length - roles.length).fill('Villager')
-    ).sort(() => Math.random() - 0.5);
+    if (!players || players.length < roles.length) {
+      document.getElementById('gameContent').innerHTML =
+        '<div class="status-message">At least 4 players required. Please ask more friends to join!</div>';
+      return;
+    }
+    // Create the role deck and shuffle
+    let roleDeck = [...roles];
+    for (let i = roles.length; i < players.length; i++) {
+      roleDeck.push('Villager');
+    }
+    roleDeck = roleDeck.sort(() => Math.random() - 0.5);
+
+    // Get this user's role from their index
     let playerRole = '';
     players.forEach((player, idx) => {
-      if (player.id === firebase.auth().currentUser.uid) playerRole = shuffled[idx];
+      if (player.id === firebase.auth().currentUser.uid) playerRole = roleDeck[idx];
     });
 
+    // Show role and reveal button
     const contentDiv = document.getElementById('gameContent');
     contentDiv.innerHTML = `
       <div class="role-card">
@@ -103,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function() {
         return;
       }
       await db.collection('rmcs_rooms').doc(roomId).update({
-        revealedPlayers: firebase.firestore.FieldValue.arrayUnion({ id: firebase.auth().currentUser.uid, role:playerRole })
+        revealedPlayers: firebase.firestore.FieldValue.arrayUnion({ id: firebase.auth().currentUser.uid, role: playerRole })
       });
     };
 
@@ -113,12 +135,13 @@ document.addEventListener("DOMContentLoaded", function() {
       if (revealed.length >= 2) {
         const revealedText = revealed.map(r => `${r.role}`).join(', ');
         document.getElementById('gameStatus').innerText = `Revealed roles: ${revealedText}. Sipahi, guess the thief!`;
-        guessUI(contentDiv);
+        guessUI(contentDiv, snapshotData);
       }
     });
   }
 
-  function guessUI(container) {
+  // Guess UI and logic for Sipahi
+  function guessUI(container, GameData) {
     container.innerHTML += `
       <input id="guessInput" placeholder="Enter thief name" class="input-field" />
       <button id="guessBtn" class="btn btn-success">Guess</button>
@@ -127,14 +150,12 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('guessBtn').onclick = async () => {
       const guess = document.getElementById('guessInput').value.trim();
       if (!guess) return alert('Enter a name to guess!');
-      const doc = await db.collection('rmcs_rooms').doc(roomId).get();
-      const data = doc.data();
-      const thief = data.players.find(player => {
-        const revealer = (data.revealedPlayers || []).find(r => r.id === player.id);
+      const thiefPlayer = GameData.players.find(player => {
+        const revealer = (GameData.revealedPlayers || []).find(r => r.id === player.id);
         return revealer && revealer.role === 'Chor';
       });
       const resultDiv = document.getElementById('guessResult');
-      if (thief && guess === thief.name) {
+      if (thiefPlayer && guess === thiefPlayer.name) {
         resultDiv.innerText = 'Correct! You caught the thief.';
       } else {
         resultDiv.innerText = 'Wrong! The thief gets away.';
