@@ -123,3 +123,54 @@ body, html {
   }
   .giant-btn { font-size:1.3em; padding:18px 25px; }
 }
+@media (min-width: 700px) {
+  .centered-bg {
+    align-items: flex-start;
+    justify-content: flex-start;
+    height: 100vh;
+    flex-direction: row;
+  }
+  .menu-screen {
+    max-width: 650px;
+    min-width: 500px;
+    height: 90vh;
+    min-height: 480px;
+  }
+  .game-table {
+    width: 400px;
+    height: 400px;
+    min-width: 380px;
+    min-height: 380px;
+  }
+  .table {
+    width: 100%;
+    height: 100%;
+  }
+  .avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 2.2rem;
+  }
+}
+
+/* Paper unfold animation */
+.paper-unfold {
+  animation: unfold 1s cubic-bezier(0.4,2,0.6,1) forwards;
+  transform-origin: top center;
+  transform: scaleY(0.1);
+  opacity: 0.3;
+}
+@keyframes unfold {
+  0% { transform: scaleY(0.1); opacity: 0.3; }
+  80% { transform: scaleY(1.1); opacity: 1; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
+/* Add fade-in bonus for result/guess */
+.animate-fade-in {
+  animation: fadeInUpResult .7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes fadeInUpResult {
+  from { opacity: 0; transform: translateY(60px) scale(0.9);}
+  to { opacity:1; transform: translateY(0) scale(1);}
+}
