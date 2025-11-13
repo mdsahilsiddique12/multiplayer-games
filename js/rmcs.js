@@ -92,8 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   };
 
-  // --- Game page logic, all async functions unchanged from robust previous version ---
-
+  // --- Game page logic ---
   function showGame(roomCode) {
     showScreen(gameScreen);
     const contentDiv = document.getElementById('gameContent');
@@ -168,52 +167,4 @@ document.addEventListener("DOMContentLoaded", function() {
           return;
         }
         await db.collection('rmcs_rooms').doc(roomId).update({
-          revealedPlayers: firebase.firestore.FieldValue.arrayUnion({ id: firebase.auth().currentUser.uid, role: playerRole })
-        });
-      };
-    } else {
-      contentDiv.innerHTML = `
-        <div class="role-card big"><h2>Your Role: ${playerRole}</h2>
-        <p>Wait for Raja and Sipahi to reveal their roles.</p></div>
-        <div id="gameStatus"></div>
-      `;
-    }
-
-    db.collection('rmcs_rooms').doc(roomId).onSnapshot(doc => {
-      const snapshotData = doc.data();
-      if (!snapshotData) return;
-      const revealed = snapshotData.revealedPlayers || [];
-      if (revealed.length >= 2) {
-        const revealedText = revealed.map(r => `${r.role}`).join(', ');
-        const statusDiv = document.getElementById('gameStatus');
-        if (statusDiv) statusDiv.innerText = `Revealed: ${revealedText}. Sipahi, guess the thief!`;
-        guessUI(contentDiv, snapshotData);
-      }
-    });
-  }
-
-  function guessUI(container, GameData) {
-    if (!container) return;
-    container.innerHTML += `
-      <input id="guessInput" placeholder="Enter thief name" class="input-field" />
-      <button id="guessBtn" class="btn btn-success">Guess</button>
-      <div id="guessResult"></div>
-    `;
-    document.getElementById('guessBtn').onclick = async () => {
-      const guess = document.getElementById('guessInput').value.trim();
-      if (!guess) return alert('Enter a name to guess!');
-      const thiefPlayer = GameData.players.find(player => {
-        const revealer = (GameData.revealedPlayers || []).find(r => r.id === player.id);
-        return revealer && revealer.role === 'Chor';
-      });
-      const resultDiv = document.getElementById('guessResult');
-      if (resultDiv) {
-        if (thiefPlayer && guess === thiefPlayer.name) {
-          resultDiv.innerText = 'Correct! You caught the thief.';
-        } else {
-          resultDiv.innerText = 'Wrong! The thief gets away.';
-        }
-      }
-    };
-  }
-});
+          revealedPlayers: firebase
