@@ -3,120 +3,151 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Multiplayer Games Hub</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <title>Raja Mantri Chor Sipahi</title>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Inter font family -->
   <style>
-    body {
-      background: radial-gradient(circle at 60% 90%, #16234b 15%, #5449a3 60%, #4a8fe7 100%);
+    :root { font-family: 'Inter', sans-serif; }
+    .centered-bg {
       min-height: 100vh;
-      overflow-y: auto;
-    }
-    .main-logo {
-      max-width: 150px;
-      margin-bottom: 18px;
-      filter: drop-shadow(0 0 18px #31f2ffcc);
-    }
-    .big-title {
-      font-size: 2.4em;
-      font-weight: bold;
-      letter-spacing: 2px;
-      color: #35fff7;
-      text-shadow: 0 4px 24px #17eafc88, 2px 2px 0 #203181;
-    }
-    .games-flex-outer {
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      gap: 40px;
-      margin: 48px 0 0 0;
-      flex-wrap: wrap;
-    }
-    .game-glass-card {
-      position: relative;
-      background: rgba(45, 58, 98, 0.7);
-      border-radius: 33px;
-      padding: 40px 30px 28px 30px;
-      min-width: 300px; max-width: 350px;
-      box-shadow: 0 10px 60px #00ffc822, 0 0 1px #000a;
-      border: 2.5px solid #3adfff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      transition: transform 180ms cubic-bezier(.24,.74,.58,1.29), box-shadow 0.2s;
-      cursor: pointer;
-      margin: 16px 0;
-      z-index: 4;
+      justify-content: center;
+      background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+      padding: 1rem;
     }
-    .game-glass-card:hover, .game-glass-card:focus {
-      transform: translateY(-5px) scale(1.05);
-      box-shadow: 0 15px 52px #35fff922, 0 2px 18px #11cafbe0;
-      background: rgba(44, 63, 125, 0.85);
-    }
-    .game__icon-wrap {
-      width: 88px; height: 88px;
-      display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #3fffdc 55%, #8cd6fa 100%);
-      border-radius: 50%;
-      margin-bottom: 17px;
-      box-shadow: 0 2px 22px #18fff788, 0 1px 0 #fff3;
-    }
-    .game__icon {
-      font-size: 3.3em;
-      text-shadow: 0 2px 8px #fff8, 0 1.5px 0 #34343422;
-    }
-    .game-glass-card h2 {
-      font-size: 1.5em;
-      color: #e9ffff;
-      letter-spacing: 1.5px;
-      margin: 8px 0 5px 0;
-      font-weight: 700;
-      text-shadow: 0 1px 6px #26e6f780;
-    }
-    .game-glass-card p {
-      color: #cdebfa;
-      font-size: 1.1em;
-      margin: 0 0 6px 0;
-      letter-spacing: 0.5px;
+    .logo-block {
+      margin-bottom: 2rem;
       text-align: center;
     }
-    .footer-sign {
-      text-align: center;
-      margin-top: 36px;
-      color: #93d6f7;
-      opacity: 0.7;
-      font-size: 1.07em;
+    .menu-screen {
+      display: none;
+      width: 100%;
+      max-width: 380px;
+      padding: 2rem;
+      background-color: #ffffff;
+      border-radius: 1.5rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      animation: fadeIn 0.5s ease-out;
     }
-    @media (max-width:700px) {
-      .games-flex-outer { flex-direction: column; align-items: center; gap: 0;}
-      .game-glass-card { min-width: 92vw; max-width:97vw; }
-      .main-logo { max-width: 90px;}
-      .big-title { font-size: 1.2em;}
+    .active-screen { display: flex; flex-direction: column; gap: 1rem; }
+    .giant-btn, .confirm-btn, .back-btn {
+      @apply w-full py-4 text-xl font-bold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-95 hover:shadow-2xl;
+    }
+    .create-btn { @apply bg-indigo-600 text-white hover:bg-indigo-700; }
+    .join-btn { @apply bg-green-500 text-white hover:bg-green-600; }
+    .confirm-btn { @apply bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700; }
+    .back-btn { @apply bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300; }
+    .input-field {
+      @apply w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors duration-200 shadow-sm hover:shadow-md focus:ring-4 focus:ring-indigo-200;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .room-code-display {
+      @apply bg-indigo-50 border border-indigo-200 text-indigo-800 p-3 rounded-lg flex items-center justify-between font-mono text-xl select-none;
+    }
+    .copy-btn {
+      @apply ml-3 p-2 bg-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-300 transition-colors duration-200;
+    }
+    #messageBox {
+      @apply fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center hidden;
+    }
+    #messageBoxContent {
+      @apply bg-white p-8 rounded-xl shadow-2xl max-w-sm text-center transform scale-100 transition-transform duration-300;
     }
   </style>
+  <!-- Firebase Setup Imports -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="js/firebase-config.js"></script>
 </head>
 <body>
   <div class="centered-bg">
+    <!-- LOGO BLOCK -->
     <div class="logo-block">
-      <img src="assets/gamehub-logo.png" alt="Game Hub" class="main-logo"/>
-      <div class="big-title">🎮 Multiplayer Game Universe</div>
-      <div class="subtitle" style="font-size:1.17em;color:#d9fcff;margin:7px auto 200px;max-width:810px;">
-        Innovative party classics, play instantly with friends. No login, just fun!
+      <svg class="main-logo w-24 h-24 sm:w-32 sm:h-32 text-indigo-700 mx-auto" 
+           viewBox="0 0 100 100" 
+           fill="none" 
+           xmlns="http://www.w3.org/2000/svg" 
+           alt="Raja Mantri Chor Sipahi Logo">
+        <rect x="0" y="0" width="100" height="100" rx="20" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="2"/>
+        <path d="M50 15 L40 35 L60 35 L50 15 Z M40 35 L45 45 L55 45 L60 35 Z" fill="#FFD700" stroke="#CCAA00" stroke-width="3"/>
+        <rect x="15" y="55" width="30" height="25" rx="5" fill="#4CAF50" stroke="#388E3C" stroke-width="3"/>
+        <circle cx="70" cy="67" r="15" fill="#333333" stroke="#111111" stroke-width="3"/>
+        <path d="M65 67 L75 67 M70 52 L70 82" stroke="#F0F0F0" stroke-width="2" stroke-linecap="round"/>
+        <path d="M50 50 L35 70 L65 70 L50 50 Z M35 70 L35 85 L65 85 L65 70 Z" fill="#2196F3" stroke="#1976D2" stroke-width="3"/>
+        <circle cx="50" cy="50" r="5" fill="#CCAA00"/>
+      </svg>
+      <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800 mt-5 tracking-wide">Raja Mantri Chor Sipahi</h1>
+    </div>
+    <!-- END LOGO BLOCK -->
+    
+    <div id="screens">
+      <!-- Main Menu -->
+      <div id="mainMenu" class="menu-screen active-screen">
+        <button id="createRoomBtn" class="giant-btn create-btn">Create Room</button>
+        <button id="joinRoomBtn" class="giant-btn join-btn">Join Room</button>
+      </div>
+      <!-- Create Room Screen -->
+      <div id="createScreen" class="menu-screen">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Create New Room</h2>
+        <input type="text" id="createPlayerName" class="input-field fancy" placeholder="Enter your name" />
+        <input type="text" id="createRoomCode" maxlength="8" class="input-field fancy" placeholder="Room code (optional, 8 chars)" />
+        <button id="createRoomFinal" class="confirm-btn">Create</button>
+        <button class="back-btn" data-target="mainMenu">Back</button>
+        <div id="createRoomError" class="error-msg text-red-500 mt-2 text-sm"></div>
+      </div>
+      <!-- Join Room Screen -->
+      <div id="joinScreen" class="menu-screen">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Join Room</h2>
+        <input type="text" id="joinPlayerName" class="input-field fancy" placeholder="Enter your name" />
+        <input type="text" id="joinRoomCode" maxlength="8" class="input-field fancy uppercase" placeholder="Enter room code" />
+        <button id="joinRoomFinal" class="confirm-btn">Join</button>
+        <button class="back-btn" data-target="mainMenu">Back</button>
+        <div id="joinRoomError" class="error-msg text-red-500 mt-2 text-sm"></div>
+      </div>
+      <!-- Game Screen (Lobby) -->
+      <div id="gameScreen" class="menu-screen">
+        <h2 class="text-3xl font-bold mb-4 text-gray-800">Room Lobby</h2>
+        <div id="roomCodeContainer" class="mb-4">
+          <p class="text-gray-600 mb-2 font-semibold">Share this Room Code:</p>
+          <div id="currentRoomCode" class="room-code-display">
+            <!-- Code and Copy Button will be populated by JS -->
+          </div>
+        </div>
+        <div id="scenarioSection" class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+          <h3 class="text-lg font-bold mb-2 text-yellow-800 flex items-center">
+            ✨ Game Scenario Creator
+          </h3>
+          <div id="scenarioOutput" class="text-gray-700 text-sm italic mb-3 min-h-[3rem]">
+            No scenario generated yet. Click the button to set the stage!
+          </div>
+          <button id="generateScenarioBtn" class="w-full py-2 text-md font-semibold rounded-lg bg-yellow-400 text-yellow-900 transition-all duration-300 hover:bg-yellow-500 disabled:bg-gray-300 disabled:text-gray-600 disabled:cursor-not-allowed">
+            ✨ Generate Dramatic Scenario
+          </button>
+        </div>
+        <h3 class="text-xl font-semibold mb-3 text-gray-700">Players in Room:</h3>
+        <ul id="playersList" class="space-y-2 mb-6 p-3 bg-gray-50 rounded-lg border">
+          <li class="text-gray-500 text-center">Loading players...</li>
+        </ul>
+        <button id="startGameBtn" class="confirm-btn">Start Game</button>
+        <button id="exitLobbyBtn" class="back-btn mt-4">Exit Lobby</button>
       </div>
     </div>
-    <div class="games-flex-outer">
-      <div class="game-glass-card" onclick="window.location.href='rmcs.html';" tabindex="0">
-        <div class="game__icon-wrap"><span class="game__icon">👑</span></div>
-        <h2>Raja Mantri Chor Sipahi</h2>
-        <p>The legendary Indian deception game — bluff and deduce to win as King, Minister, Thief, or Soldier.</p>
-      </div>
-      <div class="game-glass-card" onclick="window.location.href='detective.html';" tabindex="0">
-        <div class="game__icon-wrap"><span class="game__icon">🕵️‍♂️</span></div>
-        <h2>Detective Killer</h2>
-        <p>Survive. Investigate. Unmask the killer in this fast-paced social deduction thriller for all ages.</p>
-      </div>
-      <!-- Add more game-cards here for future expansion -->
-    </div>
-    <div class="footer-sign">Crafted by Sahil | v2.0 &copy; 2025</div>
   </div>
+  <!-- Custom Message Box/Overlay -->
+  <div id="messageBox">
+    <div id="messageBoxContent">
+      <h3 id="messageBoxTitle" class="text-2xl font-bold mb-3">Message</h3>
+      <p id="messageBoxBody" class="text-gray-700 mb-6"></p>
+      <button id="messageBoxClose" class="confirm-btn bg-indigo-600 hover:bg-indigo-700 !py-2 !px-6 !text-base">OK</button>
+    </div>
+  </div>
+  <script src="js/rmcs.js"></script>
 </body>
 </html>
