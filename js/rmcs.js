@@ -178,40 +178,42 @@ function listenToRoom(roomCode) {
 
 
   // --- Role Reveal Flow ---
-  function showRoleRevealScreen(players, selfId, playerRoles, revealed) {
-    if (gameTable) gameTable.innerHTML = '';
-    const p = (playerRoles || []).find(p => p.id === selfId);
-    const isRajaSipahi = p && (p.role === 'Raja' || p.role === 'Sipahi');
-    const alreadyRevealed = (revealed || []).some(r => r.id === selfId);
-    const container = gameTable;
-    if (!container) return;
-    container.innerHTML = `
-      <div class="flex flex-col items-center mt-8">
-        <div class="role-card paper-unfold bg-white shadow-lg p-6 rounded-2xl text-2xl">${p ? "Your Role:" : ""} <b>${p ? p.role : ''}</b>
-          ${isRajaSipahi && !alreadyRevealed ? '<button id="revealBtn" class="mt-4 px-4 py-2 bg-indigo-500 text-white rounded-full">Reveal</button>' : ''}
-        </div>
-        ${(!isRajaSipahi) ? `<div class="mt-4 bg-gray-200 text-gray-600 text-md p-3 rounded-xl">Your role is secret.<br>Wait for Raja and Sipahi to reveal.</div>` : ''}
-      </div>
-    `;
-    if (isRajaSipahi && !alreadyRevealed) {
-      document.getElementById('revealBtn').onclick = () => {
-        db.collection('rmcs_rooms').doc(roomId).update({
-          revealed: firebase.firestore.FieldValue.arrayUnion({id: selfId, role: p.role})
-        });
-      };
-    }
+function showRoleRevealScreen(players, selfId, playerRoles, revealed) {
+  if (gameTable) gameTable.innerHTML = '';
+  const p = (playerRoles || []).find(p => p.id === selfId);
+  const isRajaSipahi = p && (p.role === 'Raja' || p.role === 'Sipahi');
+  const alreadyRevealed = (revealed || []).some(r => r.id === selfId);
+  const container = gameTable;
+  if (!container) return;
 
-    // Show Raja & Sipahi avatars in straight line after reveal
-    if (revealed.filter(r => r.role === "Raja" || r.role === "Sipahi").length) {
-      setTimeout(() => showRevealedAvatars(playerRoles, revealed), 600);
-    }
-    // When both revealed, move to guess phase
-    if (revealed.filter(r => r.role === 'Raja' || r.role === 'Sipahi').length === 2) {
-      setTimeout(() => {
-        db.collection('rmcs_rooms').doc(roomId).update({ phase: 'guess' });
-      }, 1200);
-    }
+  // Show revealed roles for all players
+  let revealedRoles = playerRoles.filter(pr => revealed.some(r => r.id === pr.id));
+  let revealedHtml = revealedRoles.map(r => `
+    <div class="text-center">
+      <div class="text-5xl">${r.role === 'Raja' ? "👑" : r.role === 'Sipahi' ? "🛡️" : ""}</div>
+      <div class="avatar-name mt-1">${r.name}</div>
+    </div>
+  `).join('');
+
+  container.innerHTML = `
+    <div class="flex flex-col items-center mt-8">
+      <div class="role-card paper-unfold bg-white shadow-lg p-6 rounded-2xl text-2xl">${p ? "Your Role:" : ""} <b>${p ? p.role : ''}</b>
+        ${isRajaSipahi && !alreadyRevealed ? '<button id="revealBtn" class="mt-4 px-4 py-2 bg-indigo-500 text-white rounded-full">Reveal</button>' : ''}
+      </div>
+      ${(!isRajaSipahi) ? `<div class="mt-4 bg-gray-200 text-gray-600 text-md p-3 rounded-xl">Your role is secret.<br>Wait for Raja and Sipahi to reveal.</div>` : ''}
+      ${revealedHtml ? `<div class="flex gap-6 justify-center p-6">${revealedHtml}</div>` : ''}
+    </div>
+  `;
+
+  if (isRajaSipahi && !alreadyRevealed) {
+    document.getElementById('revealBtn').onclick = () => {
+      db.collection('rmcs_rooms').doc(roomId).update({
+        revealed: firebase.firestore.FieldValue.arrayUnion({id: selfId, role: p.role})
+      });
+    };
   }
+}
+
 
   // Straight line revealed avatars (Raja, Sipahi)
   function showRevealedAvatars(playerRoles, revealed) {
@@ -229,55 +231,56 @@ function listenToRoom(roomCode) {
   }
 
   // --- Sipahi Guess UI ---
-  function showSipahiGuessUI(playerRoles, selfId, roomCode) {
-    if (gameTable) gameTable.innerHTML = '';
-    const p = (playerRoles || []).find(p => p.id === selfId);
-    if (!p || p.role !== 'Sipahi') return;
-    // Sipahi can only see Mantri and Chor
-    const targets = playerRoles.filter(pr => pr.role === 'Mantri' || pr.role === 'Chor');
-    let timer = 90, timerId;
-    const container = gameTable;
-    function render() {
-      container.innerHTML = `
-        <div class="rounded-2xl shadow-2xl p-6 flex flex-col items-center bg-white max-w-xs mx-auto mt-6 animate-fade-in">
-          <h3 class="mb-2 text-lg font-bold text-blue-700">Guess the Chor</h3>
-          <div id="timer" class="mb-3 text-lg font-mono text-red-700">${timerFormat(timer)}</div>
-          <div class="flex flex-col gap-3 mb-2 w-full">
-            ${targets.map(t => `<button class="bg-blue-200 hover:bg-blue-400 rounded-xl px-5 py-3 text-lg font-semibold transition-all" data-id="${t.id}">${t.name}</button>`).join('')}
-          </div>
-          <div id="guessResult" class="mt-2 font-bold text-green-700"></div>
+function showSipahiGuessUI(playerRoles, selfId, roomCode) {
+  if (gameTable) gameTable.innerHTML = '';
+  const p = (playerRoles || []).find(p => p.id === selfId);
+  if (!p || p.role !== 'Sipahi') return;
+  // Sipahi can only see Mantri and Chor
+  const targets = playerRoles.filter(pr => pr.role === 'Mantri' || pr.role === 'Chor');
+  let timer = 90, timerId;
+  const container = gameTable;
+  function render() {
+    container.innerHTML = `
+      <div class="rounded-2xl shadow-2xl p-6 flex flex-col items-center bg-white max-w-xs mx-auto mt-6 animate-fade-in">
+        <h3 class="mb-2 text-lg font-bold text-blue-700">Guess the Chor</h3>
+        <div id="timer" class="mb-3 text-lg font-mono text-red-700">${timerFormat(timer)}</div>
+        <div class="flex flex-col gap-3 mb-2 w-full">
+          ${targets.map(t => `<button class="bg-blue-200 hover:bg-blue-400 rounded-xl px-5 py-3 text-lg font-semibold transition-all" data-id="${t.id}">${t.name}</button>`).join('')}
         </div>
-      `;
-      targets.forEach(t => {
-        container.querySelector(`button[data-id="${t.id}"]`).onclick = async () => {
-          let isChor = t.role === 'Chor';
-          clearInterval(timerId);
-          db.collection('rmcs_rooms').doc(roomCode).update({
-            phase: 'roundResult',
-            guess: { sipahi: p.name, guessed: t.name, correct: isChor }
-          });
-        };
-      });
-    }
-    function timerFormat(t) {
-      const m = String(Math.floor(t / 60)).padStart(2, "0");
-      const s = String(t % 60).padStart(2, "0");
-      return `${m}:${s}`;
-    }
-    render();
-    timerId = setInterval(() => {
-      timer--;
-      const timerEl = container.querySelector('#timer');
-      if (timerEl) timerEl.textContent = timerFormat(timer);
-      if (timer <= 0) {
+        <div id="guessResult" class="mt-2 font-bold text-green-700"></div>
+      </div>
+    `;
+    targets.forEach(t => {
+      container.querySelector(`button[data-id="${t.id}"]`).onclick = async () => {
+        let isChor = t.role === 'Chor';
         clearInterval(timerId);
         db.collection('rmcs_rooms').doc(roomCode).update({
           phase: 'roundResult',
-          guess: { sipahi: p.name, guessed: null, correct: false }
+          guess: { sipahi: p.name, guessed: t.name, correct: isChor }
         });
-      }
-    }, 1000);
+      };
+    });
   }
+  function timerFormat(t) {
+    const m = String(Math.floor(t / 60)).padStart(2, "0");
+    const s = String(t % 60).padStart(2, "0");
+    return `${m}:${s}`;
+  }
+  render();
+  timerId = setInterval(() => {
+    timer--;
+    const timerEl = container.querySelector('#timer');
+    if (timerEl) timerEl.textContent = timerFormat(timer);
+    if (timer <= 0) {
+      clearInterval(timerId);
+      db.collection('rmcs_rooms').doc(roomCode).update({
+        phase: 'roundResult',
+        guess: { sipahi: p.name, guessed: null, correct: false }
+      });
+    }
+  }, 1000);
+}
+
 
   // --- Round Result Animation & Next Button ---
   function showRoundResult(data, selfId, roomCode) {
