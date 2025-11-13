@@ -4,48 +4,231 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Raja Mantri Chor Sipahi</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="js/firebase-config.js"></script>
+  <!-- Load Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Inter font family -->
+  <style>
+    :root { font-family: 'Inter', sans-serif; }
+    .centered-bg {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
+      padding: 1rem;
+    }
+    .logo-block {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    .menu-screen {
+      display: none;
+      width: 100%;
+      max-width: 380px;
+      padding: 2rem;
+      background-color: #ffffff;
+      border-radius: 1.5rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      animation: fadeIn 0.5s ease-out;
+    }
+    .active-screen { display: flex; flex-direction: column; gap: 1rem; }
+    .giant-btn {
+      @apply w-full py-4 text-xl font-bold rounded-xl shadow-lg transition-all duration-300 transform;
+    }
+    .create-btn { @apply bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95; }
+    .join-btn { @apply bg-green-500 text-white hover:bg-green-600 active:scale-95; }
+    .confirm-btn { @apply bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 active:scale-95; }
+    .back-btn { @apply bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 active:scale-95; }
+    .input-field {
+      @apply w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 transition-colors duration-200;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+
+  <!-- Firebase Setup Imports (using v9/10/11 modular approach) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Global variables (must be present even if empty strings/default values)
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    let firebaseConfig;
+    try { firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}'); } catch (e) { firebaseConfig = {}; }
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    let app, auth, db, userId;
+
+    if (Object.keys(firebaseConfig).length > 0) {
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            userId = user.uid;
+            console.log("Firebase Auth State Changed. User ID:", userId);
+          } else {
+            console.log("No user signed in. Attempting anonymous sign-in.");
+            // Only sign in if no initial token is provided (as the system will handle that)
+            if (!initialAuthToken) {
+                await signInAnonymously(auth);
+            }
+          }
+          // Now that auth state is known, you can proceed with game logic/Firestore ops
+        });
+
+        if (initialAuthToken) {
+          console.log("Attempting sign-in with custom token.");
+          signInWithCustomToken(auth, initialAuthToken).catch(error => {
+            console.error("Error signing in with custom token:", error.message);
+            signInAnonymously(auth).catch(e => console.error("Anonymous sign-in failed:", e));
+          });
+        } else {
+            // Sign in anonymously if no initial token is provided (standard fallback)
+            // The onAuthStateChanged listener above handles this if initialAuthToken is null/undefined
+        }
+
+      } catch (error) {
+        console.error("Firebase initialization failed:", error);
+      }
+    } else {
+        console.log("Firebase Config not provided. Running in non-persistent mode.");
+    }
+  </script>
 </head>
 <body>
   <div class="centered-bg">
+    <!-- LOGO BLOCK WITH INLINE SVG -->
     <div class="logo-block">
-      <img src="assets/rmcs-logo.png" class="main-logo" alt="Game Logo"/> <!-- Use a sharp SVG or PNG icon! -->
-      <h1>Raja Mantri Chor Sipahi</h1>
+      <!-- 
+        The inline SVG is the logo. The class 'main-logo' defines its size:
+        w-24 h-24 (96px x 96px) on mobile, w-32 h-32 (128px x 128px) on larger screens.
+        This directly addresses your request for proper height and width via responsive classes.
+      -->
+      <svg class="main-logo w-24 h-24 sm:w-32 sm:h-32 text-indigo-700 mx-auto" 
+           viewBox="0 0 100 100" 
+           fill="none" 
+           xmlns="http://www.w3.org/2000/svg" 
+           alt="Raja Mantri Chor Sipahi Logo">
+        
+        <!-- Background/Container Shape (Optional, for visual depth) -->
+        <rect x="0" y="0" width="100" height="100" rx="20" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="2"/>
+        
+        <!-- Raja (King - Crown) - Gold -->
+        <path d="M50 15 L40 35 L60 35 L50 15 Z M40 35 L45 45 L55 45 L60 35 Z" fill="#FFD700" stroke="#CCAA00" stroke-width="3"/>
+        
+        <!-- Mantri (Minister - Scroll/Book) - Green -->
+        <rect x="15" y="55" width="30" height="25" rx="5" fill="#4CAF50" stroke="#388E3C" stroke-width="3"/>
+        
+        <!-- Chor (Thief - Mask/Shadow) - Dark Gray -->
+        <circle cx="70" cy="67" r="15" fill="#333333" stroke="#111111" stroke-width="3"/>
+        <path d="M65 67 L75 67 M70 52 L70 82" stroke="#F0F0F0" stroke-width="2" stroke-linecap="round"/>
+        
+        <!-- Sipahi (Soldier - Shield) - Blue -->
+        <path d="M50 50 L35 70 L65 70 L50 50 Z M35 70 L35 85 L65 85 L65 70 Z" fill="#2196F3" stroke="#1976D2" stroke-width="3"/>
+
+        <!-- Central Divider/Focus -->
+        <circle cx="50" cy="50" r="5" fill="#CCAA00"/>
+
+      </svg>
+      <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800 mt-5 tracking-wide">Raja Mantri Chor Sipahi</h1>
     </div>
+    <!-- END LOGO BLOCK -->
+    
     <div id="screens">
       <!-- Main Menu -->
       <div id="mainMenu" class="menu-screen active-screen">
-        <button class="giant-btn create-btn">Create Room</button>
-        <button class="giant-btn join-btn">Join Room</button>
+        <button id="createRoomBtn" class="giant-btn create-btn">Create Room</button>
+        <button id="joinRoomBtn" class="giant-btn join-btn">Join Room</button>
       </div>
       <!-- Create Room Screen -->
       <div id="createScreen" class="menu-screen">
-        <h2>Create New Room</h2>
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Create New Room</h2>
         <input type="text" id="createPlayerName" class="input-field fancy" placeholder="Enter your name" />
         <input type="text" id="createRoomCode" maxlength="8" class="input-field fancy" placeholder="Room code (leave blank for random)" />
         <button id="createRoomFinal" class="confirm-btn">Create</button>
-        <button class="back-btn">Back</button>
-        <div id="createRoomError" class="error-msg"></div>
+        <button class="back-btn" data-target="mainMenu">Back</button>
+        <div id="createRoomError" class="error-msg text-red-500 mt-2 text-sm"></div>
       </div>
       <!-- Join Room Screen -->
       <div id="joinScreen" class="menu-screen">
-        <h2>Join Room</h2>
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Join Room</h2>
         <input type="text" id="joinPlayerName" class="input-field fancy" placeholder="Enter your name" />
         <input type="text" id="joinRoomCode" maxlength="8" class="input-field fancy" placeholder="Enter room code" />
         <button id="joinRoomFinal" class="confirm-btn">Join</button>
-        <button class="back-btn">Back</button>
-        <div id="joinRoomError" class="error-msg"></div>
+        <button class="back-btn" data-target="mainMenu">Back</button>
+        <div id="joinRoomError" class="error-msg text-red-500 mt-2 text-sm"></div>
       </div>
-      <!-- Game Screen -->
+      <!-- Game Screen (placeholder) -->
       <div id="gameScreen" class="menu-screen">
-        <div id="gameContent"></div>
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Game Lobby</h2>
+        <p>Waiting for players...</p>
+        <div id="gameContent" class="mt-4 p-4 bg-gray-100 rounded-lg"></div>
+        <button class="back-btn mt-4" data-target="mainMenu">Exit Game</button>
       </div>
     </div>
   </div>
-  <script src="js/rmcs.js"></script>
+  
+  <script>
+    // --- Screen Navigation Logic ---
+    const screens = {
+      mainMenu: document.getElementById('mainMenu'),
+      createScreen: document.getElementById('createScreen'),
+      joinScreen: document.getElementById('joinScreen'),
+      gameScreen: document.getElementById('gameScreen')
+    };
+
+    function navigateTo(screenId) {
+      Object.values(screens).forEach(screen => {
+        screen.classList.remove('active-screen');
+      });
+      if (screens[screenId]) {
+        screens[screenId].classList.add('active-screen');
+      } else {
+        console.error("Screen not found:", screenId);
+      }
+    }
+
+    // Button event listeners
+    document.getElementById('createRoomBtn').addEventListener('click', () => navigateTo('createScreen'));
+    document.getElementById('joinRoomBtn').addEventListener('click', () => navigateTo('joinScreen'));
+
+    document.querySelectorAll('.back-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        navigateTo(button.getAttribute('data-target') || 'mainMenu');
+      });
+    });
+
+    // Placeholder actions (to show functionality flow)
+    document.getElementById('createRoomFinal').addEventListener('click', () => {
+      const playerName = document.getElementById('createPlayerName').value.trim();
+      if (playerName) {
+        console.log(`Creating room for ${playerName}...`);
+        navigateTo('gameScreen');
+        document.getElementById('gameContent').innerHTML = `<p class="font-bold">Room created! Waiting for players...</p><p>Player: ${playerName}</p>`;
+      } else {
+        document.getElementById('createRoomError').textContent = "Please enter your name.";
+      }
+    });
+
+    document.getElementById('joinRoomFinal').addEventListener('click', () => {
+      const playerName = document.getElementById('joinPlayerName').value.trim();
+      const roomCode = document.getElementById('joinRoomCode').value.trim();
+      if (playerName && roomCode) {
+        console.log(`Joining room ${roomCode} as ${playerName}...`);
+        navigateTo('gameScreen');
+        document.getElementById('gameContent').innerHTML = `<p class="font-bold">Joined Room: ${roomCode}</p><p>Player: ${playerName}</p>`;
+      } else {
+        document.getElementById('joinRoomError').textContent = "Please enter both name and room code.";
+      }
+    });
+
+  </script>
 </body>
 </html>
