@@ -10,6 +10,9 @@ document.addEventListener("DOMContentLoaded", function () {
   let lastPhase = ''; 
   const MIN_PLAYERS = 4;
   const MAX_PLAYERS = 8; // you can change to 10 if you want later
+    if (roomMaxPlayersEl) roomMaxPlayersEl.textContent = MAX_PLAYERS;
+    if (roomMinPlayersEl) roomMinPlayersEl.textContent = MIN_PLAYERS;
+
 
 
   // --- 2. DOM ELEMENTS ---
@@ -28,6 +31,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const currentRoomCode = getEl('currentRoomCode');
   const copyCodeBtn = getEl('copyCodeBtn');
   const copyLinkBtn = getEl('copyLinkBtn');
+  const roomPlayerCountEl = getEl('roomPlayerCount');
+  const roomMaxPlayersEl = getEl('roomMaxPlayers');
+  const roomMinPlayersEl = getEl('roomMinPlayers');
   const scoreListEl = getEl('scoreList');
   const startGameBtn = getEl('startGameBtn');
   const cancelRoomBtn = getEl('cancelRoomBtn');
@@ -228,9 +234,14 @@ document.addEventListener("DOMContentLoaded", function () {
           if(!data.players.some(p=>p.id===selfId)) { alert("Kicked from Squad"); showScreen(mainMenu); return; }
 
           // Update UI
+          // Update UI
           if(currentRoomCode) currentRoomCode.innerText = roomCode;
           renderPlayersList(data.players, data.host);
           renderScoreboard(data.scores, data.players);
+          if (roomPlayerCountEl) {
+            roomPlayerCountEl.textContent = data.players.length;
+          }
+
 
           const isHost = selfId === data.host;
           if(cancelRoomBtn) {
