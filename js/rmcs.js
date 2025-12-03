@@ -612,25 +612,29 @@ document.addEventListener("DOMContentLoaded", function () {
       unsubscribe();
       unsubscribe = null;
     }
+  
     const roomRef = db.collection("rmcs_rooms").doc(roomCode);
-
+  
     unsubscribe = roomRef.onSnapshot((docSnap) => {
-      const data = doc.data();
-      if (!firebase.auth().currentUser) return;
-      const selfId = firebase.auth().currentUser.uid;
-
-      // ROOM DELETED → show feedback to this player
-      if (!data) {
+      // when room is deleted
+      if (!docSnap.exists) {
         if (unsubscribe) {
           unsubscribe();
           unsubscribe = null;
         }
+        // show feedback + go back to main menu
         postFeedbackAction = () => {
           showScreen(mainMenu);
         };
         openFeedback("room_closed");
         return;
       }
+  
+      const data = docSnap.data();   // ✅ USE docSnap HERE
+  
+      if (!firebase.auth().currentUser) return;
+      const selfId = firebase.auth().currentUser.uid;
+  
       if (!data.players.some((p) => p.id === selfId)) {
         alert("Kicked from Squad");
         showScreen(mainMenu);
