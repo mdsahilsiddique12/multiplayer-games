@@ -471,7 +471,7 @@
             <!-- Actual room code text -->
             <div id="currentRoomCode" class="text-lg tracking-[0.35em]"></div>
         
-            <!-- New buttons -->
+            <!-- Buttons -->
             <div class="flex gap-3 flex-wrap justify-center">
               <button
                 id="copyCodeBtn"
@@ -486,6 +486,17 @@
                 COPY INVITE LINK
               </button>
             </div>
+        
+            <!-- Lobby meta: players / min / max -->
+            <div class="mt-1 text-[11px] text-gray-400 font-mono text-center">
+              Players:
+              <span id="roomPlayerCount">1</span>/
+              <span id="roomMaxPlayers">8</span>
+              &nbsp;·&nbsp;
+              Min to start:
+              <span id="roomMinPlayers">4</span>
+            </div>
+        
           </div>
         </div>
 
