@@ -245,19 +245,29 @@
       box-shadow: 0 0 15px var(--neon-blue);
     }
     .avatar-name {
-      margin-top: 80px; /* Push name below orb */
+      margin-top: 80px;
       font-size: 0.8rem;
       font-weight: 700;
-      color: white;
-      background: var(--neon-blue);
-      color: black;
-      padding: 2px 8px;
-      border-radius: 2px;
+      padding: 2px 10px;
+      border-radius: 999px;
       text-transform: uppercase;
       letter-spacing: 1px;
       white-space: nowrap;
       position: absolute;
+    
+      /* NEW COLORS – high contrast */
+      background: rgba(15, 23, 42, 0.95); /* deep slate */
+      color: #e5e7eb;                      /* light gray text */
+      border: 1px solid rgba(148, 163, 184, 0.9);
     }
+    
+    /* SPECIAL STYLE ONLY FOR SELF */
+    .avatar-name-self {
+      border-color: #f97316;                  /* orange */
+      color: #f97316;
+      box-shadow: 0 0 14px rgba(249, 115, 22, 0.7);
+    }
+
 
     /* Dynamic Game Content Overlay */
     /* Dynamic Game Content Overlay */
