@@ -602,3 +602,37 @@ document.addEventListener("DOMContentLoaded", function () {
       });
   }
 });
+// --- AUTO JOIN ROOM IF URL HAS ?room=XXXX ---
+document.addEventListener("DOMContentLoaded", async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoRoom = urlParams.get("room");
+
+    if (autoRoom) {
+        // Move user to Join screen instantly
+        showScreen(joinScreen);
+
+        // Fill the room code box automatically
+        const joinInput = document.getElementById("joinRoomCode");
+        if (joinInput) joinInput.value = autoRoom;
+
+        // Wait for authentication before auto-joining
+        const waitForAuth = setInterval(async () => {
+            const user = firebase.auth().currentUser;
+            if (user) {
+                clearInterval(waitForAuth);
+
+                // Optional: auto‑generate a username if blank
+                const nameInput = document.getElementById("joinPlayerName");
+                if (nameInput && !nameInput.value.trim()) {
+                    nameInput.value = "Player_" + Math.floor(Math.random() * 9999);
+                }
+
+                // Automatically join room after 1 sec
+                setTimeout(() => {
+                    const autoJoinBtn = document.getElementById("joinRoomFinal");
+                    if (autoJoinBtn) autoJoinBtn.click();
+                }, 800);
+            }
+        }, 300);
+    }
+});
