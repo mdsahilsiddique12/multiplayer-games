@@ -1137,17 +1137,20 @@ document.addEventListener("DOMContentLoaded", function () {
       else if (isVip) badge = "⭐";
       else badge = "🎮";
 
+      const isSelf = p.id === selfId;
+      
       el.innerHTML = `
         <span class="text-3xl drop-shadow-md">${icon}</span>
-        <div class="avatar-name" style="${getNameStyleForPlayer(p, hostId)}">
-          ${badge} ${p.name}
+        <div class="avatar-name ${isSelf ? 'avatar-name-self' : ''}">
+          ${p.name}
         </div>
       `;
-
-      if (p.id === selfId) {
-        el.style.borderColor = "var(--neon-green)";
-        el.style.boxShadow = "0 0 20px var(--neon-green)";
+      
+      if (isSelf) {
+        el.style.borderColor = '#f97316'; // same orange
+        el.style.boxShadow = '0 0 20px rgba(249, 115, 22, 0.8)';
       }
+
 
       table.appendChild(el);
     });
