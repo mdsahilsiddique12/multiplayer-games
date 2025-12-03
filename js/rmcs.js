@@ -33,7 +33,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const scoreListEl = getEl("scoreList");
   const startGameBtn = getEl("startGameBtn");
   const cancelRoomBtn = getEl("cancelRoomBtn");
-  const roundTransition = getEl("roundTransition");
 
   const openStoreBtn = getEl("openStoreBtn");
   const userCoinsEl = getEl("userCoins");
