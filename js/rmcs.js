@@ -8,6 +8,9 @@ document.addEventListener("DOMContentLoaded", function () {
   let playerName = '';
   let currentUserData = null;
   let lastPhase = ''; 
+  const MIN_PLAYERS = 4;
+  const MAX_PLAYERS = 8; // you can change to 10 if you want later
+
 
   // --- 2. DOM ELEMENTS ---
   const getEl = (id) => document.getElementById(id);
@@ -197,8 +200,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 nameColor: (currentUserData.inventory||[]).includes('gold_name') ? 'gold' : 'white'
             };
 
-            if(!doc.data().players.some(p=>p.id === uid)) {
-                if(doc.data().players.length >= 4) return alert("Squad Full");
+            if (!doc.data().players.some(p => p.id === uid)) {
+                if (doc.data().players.length >= MAX_PLAYERS) {
+                    return alert(`Squad Full (${doc.data().players.length}/${MAX_PLAYERS})`);
+                }
                 await ref.update({ 
                     players: firebase.firestore.FieldValue.arrayUnion(playerData),
                     [`scores.${uid}`]: 0 
@@ -255,18 +260,46 @@ document.addEventListener("DOMContentLoaded", function () {
               gameContent.style.display = 'none'; 
               renderAvatarsTable(data.players, selfId);
               
-              if(startGameBtn) {
+              if (startGameBtn) {
                   startGameBtn.style.display = 'flex';
-                  startGameBtn.disabled = !(isHost && data.players.length === 4);
-                  startGameBtn.innerText = (data.players.length === 4) ? "INITIATE SEQUENCE" : `WAITING (${data.players.length}/4)`;
+              
+                  const playerCount = data.players.length;
+                  const canStart = isHost && playerCount >= MIN_PLAYERS;
+              
+                  startGameBtn.disabled = !canStart;
+                  startGameBtn.innerText = canStart
+                    ? "INITIATE SEQUENCE"
+                    : `WAITING (${playerCount}/${MIN_PLAYERS})`;
+              
                   startGameBtn.onclick = () => {
-                      if(isHost && data.players.length === 4) {
-                          const roles = ['Raja', 'Mantri', 'Chor', 'Sipahi'].sort(() => Math.random() - 0.5);
-                          const pr = data.players.map((p,i) => ({ id: p.id, name: p.name, role: roles[i] }));
-                          roomRef.update({ phase: 'reveal', playerRoles: pr, revealed: [], guess: null, scoreUpdated: false });
-                      }
+                    if (!canStart) return;
+              
+                    // Base roles everyone knows from RMCS
+                    const baseRoles = ['Raja', 'Mantri', 'Chor', 'Sipahi'];
+              
+                    // Extra players beyond 4 become Civilians (or “Agent” if you prefer)
+                    const extraCount = Math.max(0, playerCount - baseRoles.length);
+                    const extraRoles = Array.from({ length: extraCount }, () => 'Civilian');
+              
+                    // Shuffle roles to assign randomly
+                    const roles = [...baseRoles, ...extraRoles].sort(() => Math.random() - 0.5);
+              
+                    const pr = data.players.map((p, i) => ({
+                      id: p.id,
+                      name: p.name,
+                      role: roles[i]
+                    }));
+              
+                    roomRef.update({
+                      phase: 'reveal',
+                      playerRoles: pr,
+                      revealed: [],
+                      guess: null,
+                      scoreUpdated: false
+                    });
                   };
               }
+
 
           } else {
               // GAME MODE: Show the Game Overlay (Covering Avatars)
@@ -401,13 +434,28 @@ document.addEventListener("DOMContentLoaded", function () {
               const btn = getEl('rebootBtn');
               if(btn) btn.onclick = () => {
                   btn.innerText = "INITIALIZING...";
-                  const roles = ['Raja', 'Mantri', 'Chor', 'Sipahi'].sort(() => Math.random() - 0.5);
-                  const pr = data.playerRoles.map((p,i) => ({ id: p.id, name: p.name, role: roles[i] }));
-                  roomRef.update({ phase: 'reveal', playerRoles: pr, revealed: [], guess: null, scoreUpdated: false });
-              };
-          }, 100);
-      }
-  }
+                
+                  const playerCount = data.playerRoles.length;
+                  const baseRoles = ['Raja', 'Mantri', 'Chor', 'Sipahi'];
+                  const extraCount = Math.max(0, playerCount - baseRoles.length);
+                  const extraRoles = Array.from({ length: extraCount }, () => 'Civilian');
+                  const roles = [...baseRoles, ...extraRoles].sort(() => Math.random() - 0.5);
+                
+                  const pr = data.playerRoles.map((p, i) => ({
+                    id: p.id,
+                    name: p.name,
+                    role: roles[i]
+                  }));
+                
+                  roomRef.update({
+                    phase: 'reveal',
+                    playerRoles: pr,
+                    revealed: [],
+                    guess: null,
+                    scoreUpdated: false
+                  });
+                };
+
 
   // --- HELPERS ---
   function getRoleIcon(role) {
@@ -418,13 +466,23 @@ document.addEventListener("DOMContentLoaded", function () {
   function calculateRoundPoints(roles, isCorrect) {
       const pts = {};
       roles.forEach(p => {
-          if(p.role === 'Raja') pts[p.id] = 1000;
-          else if(p.role === 'Mantri') pts[p.id] = 800;
-          else if(p.role === 'Sipahi') pts[p.id] = isCorrect ? 500 : 0;
-          else if(p.role === 'Chor') pts[p.id] = isCorrect ? 0 : 500;
+          if (p.role === 'Raja') pts[p.id] = 1000;
+          else if (p.role === 'Mantri') pts[p.id] = 800;
+          else if (p.role === 'Sipahi') pts[p.id] = isCorrect ? 500 : 0;
+          else if (p.role === 'Chor') pts[p.id] = isCorrect ? 0 : 500;
+          else if (p.role === 'Civilian') pts[p.id] = 100; // small participation reward
       });
       return pts;
   }
+  function getRoleIcon(role) {
+      if(role==='Raja') return '👑'; 
+      if(role==='Mantri') return '🧠';
+      if(role==='Sipahi') return '🛡️'; 
+      if(role==='Chor') return '🔪';
+      if(role==='Civilian') return '👤';
+      return '❓';
+  }
+
   function renderPlayersList(players, hostId) {
     if (!playersListEl) return;
     if (!players || players.length === 0) {
