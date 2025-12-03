@@ -10,8 +10,6 @@ document.addEventListener("DOMContentLoaded", function () {
   let lastPhase = ''; 
   const MIN_PLAYERS = 4;
   const MAX_PLAYERS = 8; // you can change to 10 if you want later
-    if (roomMaxPlayersEl) roomMaxPlayersEl.textContent = MAX_PLAYERS;
-    if (roomMinPlayersEl) roomMinPlayersEl.textContent = MIN_PLAYERS;
 
 
 
@@ -38,6 +36,11 @@ document.addEventListener("DOMContentLoaded", function () {
   const startGameBtn = getEl('startGameBtn');
   const cancelRoomBtn = getEl('cancelRoomBtn');
   const roundTransition = getEl('roundTransition');
+
+    // Initialize lobby meta labels
+  if (roomMaxPlayersEl) roomMaxPlayersEl.textContent = MAX_PLAYERS;
+  if (roomMinPlayersEl) roomMinPlayersEl.textContent = MIN_PLAYERS;
+
 
   // --- 3. SOUND ENGINE ---
   const SoundEffects = {
