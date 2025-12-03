@@ -425,13 +425,21 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  const exitLobbyBtn = getEl("exitLobbyBtn");
+  const exitLobbyBtn = getEl('exitLobbyBtn');
   if (exitLobbyBtn) {
     exitLobbyBtn.onclick = () => {
-      if (unsubscribe) unsubscribe();
-      showScreen(mainMenu);
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+      // After feedback is done, go back to main menu
+      postFeedbackAction = () => {
+        showScreen(mainMenu);
+      };
+      openFeedback("manual_disconnect");
     };
   }
+
   // --- FEEDBACK HELPERS ---
   function getStarValue(group) {
     const checked = document.querySelector(`input[name="${group}"]:checked`);
@@ -608,14 +616,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const roomRef = db.collection("rmcs_rooms").doc(roomCode);
 
     unsubscribe = roomRef.onSnapshot((docSnap) => {
-      const data = docSnap.data();
-      const user = firebase.auth().currentUser;
-      if (!user) return;
+      const data = doc.data();
+      if (!firebase.auth().currentUser) return;
+      const selfId = firebase.auth().currentUser.uid;
 
-      const selfId = user.uid;
+      // ROOM DELETED → show feedback to this player
       if (!data) {
-        alert("Mission Aborted (Room Closed)");
-        showScreen(mainMenu);
+        if (unsubscribe) {
+          unsubscribe();
+          unsubscribe = null;
+        }
+        postFeedbackAction = () => {
+          showScreen(mainMenu);
+        };
+        openFeedback("room_closed");
         return;
       }
       if (!data.players.some((p) => p.id === selfId)) {
@@ -642,11 +656,28 @@ document.addEventListener("DOMContentLoaded", function () {
       const isHost = selfId === data.host;
 
       if (cancelRoomBtn) {
-        cancelRoomBtn.style.display = isHost ? "block" : "none";
-        cancelRoomBtn.onclick = () => {
-          if (confirm("Abort Mission?")) roomRef.delete();
+        cancelRoomBtn.style.display = isHost ? 'block' : 'none';
+        cancelRoomBtn.onclick = async () => {
+          if (!isHost) return;
+          if (confirm("Abort mission for everyone?")) {
+            try {
+              await roomRef.delete();
+            } catch (e) {
+              console.error("Room delete failed", e);
+            }
+            if (unsubscribe) {
+              unsubscribe();
+              unsubscribe = null;
+            }
+            // Host also gets feedback
+            postFeedbackAction = () => {
+              showScreen(mainMenu);
+            };
+            openFeedback("host_terminated");
+          }
         };
       }
+
 
       // Host player management (kick / mute)
       if (isHost) {
