@@ -429,32 +429,38 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         </div>`;
 
-      if(isHost) {
-          setTimeout(() => {
-              const btn = getEl('rebootBtn');
-              if(btn) btn.onclick = () => {
-                  btn.innerText = "INITIALIZING...";
-                
-                  const playerCount = data.playerRoles.length;
-                  const baseRoles = ['Raja', 'Mantri', 'Chor', 'Sipahi'];
-                  const extraCount = Math.max(0, playerCount - baseRoles.length);
-                  const extraRoles = Array.from({ length: extraCount }, () => 'Civilian');
-                  const roles = [...baseRoles, ...extraRoles].sort(() => Math.random() - 0.5);
-                
-                  const pr = data.playerRoles.map((p, i) => ({
-                    id: p.id,
-                    name: p.name,
-                    role: roles[i]
-                  }));
-                
-                  roomRef.update({
-                    phase: 'reveal',
-                    playerRoles: pr,
-                    revealed: [],
-                    guess: null,
-                    scoreUpdated: false
-                  });
-                };
+      if (isHost) {
+        setTimeout(() => {
+          const btn = getEl('rebootBtn');
+          if (btn) {
+            btn.onclick = () => {
+              btn.innerText = "INITIALIZING...";
+
+              const playerCount = data.playerRoles.length;
+              const baseRoles = ['Raja', 'Mantri', 'Chor', 'Sipahi'];
+              const extraCount = Math.max(0, playerCount - baseRoles.length);
+              const extraRoles = Array.from({ length: extraCount }, () => 'Civilian');
+              const roles = [...baseRoles, ...extraRoles].sort(() => Math.random() - 0.5);
+
+              const pr = data.playerRoles.map((p, i) => ({
+                id: p.id,
+                name: p.name,
+                role: roles[i]
+              }));
+
+              roomRef.update({
+                phase: 'reveal',
+                playerRoles: pr,
+                revealed: [],
+                guess: null,
+                scoreUpdated: false
+              });
+            };
+          }
+        }, 100);
+      }
+  }
+  // --- HELPERS ---
 
 
   // --- HELPERS ---
