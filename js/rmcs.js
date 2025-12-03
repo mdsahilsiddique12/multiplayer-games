@@ -23,6 +23,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const gameTable = document.querySelector('.game-table');
   const playersListEl = getEl('playersList');
   const currentRoomCode = getEl('currentRoomCode');
+  const copyCodeBtn = getEl('copyCodeBtn');
+  const copyLinkBtn = getEl('copyLinkBtn');
   const scoreListEl = getEl('scoreList');
   const startGameBtn = getEl('startGameBtn');
   const cancelRoomBtn = getEl('cancelRoomBtn');
@@ -107,6 +109,33 @@ document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll('.create-btn').forEach(b => b.onclick = () => showScreen(createScreen));
   document.querySelectorAll('.join-btn').forEach(b => b.onclick = () => showScreen(joinScreen));
   document.querySelectorAll('.back-btn').forEach(b => b.onclick = () => showScreen(mainMenu));
+
+  // --- COPY ROOM CODE / LINK ---
+  if (copyCodeBtn) {
+    copyCodeBtn.onclick = () => {
+      const code = currentRoomCode ? currentRoomCode.innerText.trim() : '';
+      if (!code) return alert("Room code not ready yet.");
+      navigator.clipboard.writeText(code).then(() => {
+        alert("Room code copied!");
+      }).catch(() => {
+        alert("Copy failed, please copy manually.");
+      });
+    };
+  }
+  
+  if (copyLinkBtn) {
+    copyLinkBtn.onclick = () => {
+      const code = currentRoomCode ? currentRoomCode.innerText.trim() : '';
+      if (!code) return alert("Room code not ready yet.");
+      const link = `${window.location.origin}${window.location.pathname}?room=${code}`;
+      navigator.clipboard.writeText(link).then(() => {
+        alert("Invite link copied!");
+      }).catch(() => {
+        alert("Copy failed, please copy manually.");
+      });
+    };
+  }
+
   
   const exitLobbyBtn = getEl('exitLobbyBtn');
   if(exitLobbyBtn) {
@@ -195,7 +224,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
           // Update UI
           if(currentRoomCode) currentRoomCode.innerText = roomCode;
-          renderPlayersList(data.players);
+          renderPlayersList(data.players, data.host);
           renderScoreboard(data.scores, data.players);
 
           const isHost = selfId === data.host;
@@ -396,14 +425,45 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       return pts;
   }
-  function renderPlayersList(players) {
-      if(!playersListEl) return;
-      playersListEl.innerHTML = players.map(p => `
-         <div class="px-3 py-1 border border-gray-700 rounded bg-black/40 text-xs text-gray-300 flex items-center gap-2">
-            <span class="text-[10px] text-neon-blue">●</span> ${p.name}
-         </div>
-      `).join('');
+  function renderPlayersList(players, hostId) {
+    if (!playersListEl) return;
+    if (!players || players.length === 0) {
+      playersListEl.innerHTML = `
+        <div class="text-[11px] text-gray-500 italic">
+          Waiting for operatives to connect...
+        </div>`;
+      return;
+    }
+  
+    playersListEl.innerHTML = players.map(p => {
+      const isHost = p.id === hostId;
+      const isVip = p.isVip;
+      const nameColor = p.nameColor || 'white';
+  
+      return `
+        <div class="flex items-center justify-between px-3 py-2 border border-gray-800 rounded-lg bg-black/40 text-xs mb-1 w-full max-w-xs">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/60 to-purple-500/60 flex items-center justify-center text-[11px]">
+              ${p.name.charAt(0).toUpperCase()}
+            </div>
+            <div class="flex flex-col">
+              <span class="font-mono" style="color:${nameColor};">
+                ${p.name}
+              </span>
+              ${isHost
+                ? `<span class="text-[9px] text-neon-blue tracking-[0.2em] uppercase">HOST</span>`
+                : `<span class="text-[9px] text-gray-500 uppercase tracking-[0.2em]">${isVip ? 'VIP' : 'AGENT'}</span>`
+              }
+            </div>
+          </div>
+          <div class="text-[10px] text-gray-400">
+            ● ONLINE
+          </div>
+        </div>
+      `;
+    }).join('');
   }
+
   function renderScoreboard(scores, players) {
       if(!scoreListEl) return;
       if(!scores) return;
