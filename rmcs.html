@@ -202,7 +202,7 @@
       position: relative;
       width: 320px;
       height: 320px;
-      margin: 2rem auto;
+      margin: 1.25rem auto; /* was 2rem */
       perspective: 1200px;
     }
     .table {
@@ -456,54 +456,69 @@
 
         
         <!-- Header Bar -->
-        <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
-           <div class="flex items-center gap-3">
-             <div class="w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#0f0] animate-pulse"></div>
-             <h2 class="font-cyber text-xl text-white tracking-widest">LIVE FEED</h2>
-           </div>
-           <button id="exitLobbyBtn" class="text-red-500 font-bold text-xs hover:text-red-400 tracking-widest border border-red-900 px-3 py-1 rounded hover:bg-red-900/30 transition">DISCONNECT</button>
-        </div>
-
-        <!-- Room Code Bar -->
-        <div class="flex justify-center mb-6">
-          <div class="room-code-display w-full max-w-md flex flex-col items-center gap-3">
-            
-            <!-- Actual room code text -->
-            <div id="currentRoomCode" class="text-lg tracking-[0.35em]"></div>
-        
-            <!-- Buttons -->
-            <div class="flex gap-3 flex-wrap justify-center">
-              <button
-                id="copyCodeBtn"
-                class="px-3 py-1 text-[10px] uppercase tracking-widest border border-neon-blue/70 rounded bg-black/50 hover:bg-neon-blue/20 transition font-cyber"
-              >
-                COPY CODE
-              </button>
-              <button
-                id="copyLinkBtn"
-                class="px-3 py-1 text-[10px] uppercase tracking-widest border border-neon-blue/70 rounded bg-black/50 hover:bg-neon-blue/20 transition font-cyber"
-              >
-                COPY INVITE LINK
-              </button>
+        <!-- Header Bar + Room Code -->
+        <div class="mb-4 border-b border-gray-800 pb-3">
+          <div class="flex items-center justify-between gap-4 mb-3">
+            <!-- LEFT: LIVE FEED -->
+            <div class="flex items-center gap-3">
+              <div class="w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#0f0] animate-pulse"></div>
+              <h2 class="font-cyber text-xl text-white tracking-widest">LIVE FEED</h2>
             </div>
         
-            <!-- Lobby meta: players / min / max -->
-            <div class="mt-1 text-[11px] text-gray-400 font-mono text-center">
-              Players:
-              <span id="roomPlayerCount">1</span>/
-              <span id="roomMaxPlayers">8</span>
-              &nbsp;·&nbsp;
-              Min to start:
-              <span id="roomMinPlayers">4</span>
-            </div>
+            <!-- RIGHT: DISCONNECT -->
+            <button
+              id="exitLobbyBtn"
+              class="text-red-500 font-bold text-xs hover:text-red-400 tracking-widest border border-red-900 px-3 py-1 rounded hover:bg-red-900/30 transition"
+            >
+              DISCONNECT
+            </button>
+          </div>
         
+          <!-- CENTER: ROOM CODE + BUTTONS on the same band -->
+          <div class="flex justify-center">
+            <div class="room-code-display w-full max-w-2xl flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        
+              <!-- Room code text -->
+              <div class="flex items-center gap-3">
+                <span class="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-mono">ROOM</span>
+                <div id="currentRoomCode" class="text-lg tracking-[0.35em]"></div>
+              </div>
+        
+              <!-- Buttons + player counts -->
+              <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+                <div class="flex gap-2 justify-center">
+                  <button
+                    id="copyCodeBtn"
+                    class="px-3 py-1 text-[10px] uppercase tracking-widest border border-neon-blue/70 rounded bg-black/50 hover:bg-neon-blue/20 transition font-cyber"
+                  >
+                    COPY CODE
+                  </button>
+                  <button
+                    id="copyLinkBtn"
+                    class="px-3 py-1 text-[10px] uppercase tracking-widest border border-neon-blue/70 rounded bg-black/50 hover:bg-neon-blue/20 transition font-cyber"
+                  >
+                    COPY INVITE LINK
+                  </button>
+                </div>
+                <div class="text-[11px] text-gray-400 font-mono text-center md:text-right">
+                  Players:
+                  <span id="roomPlayerCount">1</span> /
+                  <span id="roomMaxPlayers">8</span>
+                  &nbsp;·&nbsp;
+                  Min to start:
+                  <span id="roomMinPlayers">4</span>
+                </div>
+              </div>
+        
+            </div>
           </div>
         </div>
 
 
+
         <!-- Main Layout: Scoreboard + Table -->
         <!-- Main Layout: Terminal + Table + Scoreboard -->
-        <div class="flex flex-col lg:flex-row gap-8 items-start w-full">
+        <div class="flex flex-col lg:flex-row gap-6 items-start w-full">
         
           <!-- LEFT: Terminal / Chat placeholder -->
           <div id="terminalPanel" class="w-full lg:w-64 p-4 rounded-lg bg-black/40 border border-gray-800 order-3 lg:order-1">
@@ -531,7 +546,7 @@
               <div id="gameContent" class="p-6 text-center"></div> 
             </div>
             <!-- Host Controls -->
-            <div class="mt-8 w-full max-w-xs z-20 flex flex-col gap-3">
+            <div class="mt-4 w-full max-w-xs z-20 flex flex-col gap-3">
                <button id="startGameBtn" class="cyber-btn w-full shadow-[0_0_20px_rgba(0,243,255,0.3)]">
                  INITIATE SEQUENCE
                </button>
