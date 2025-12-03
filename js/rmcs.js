@@ -43,6 +43,17 @@ document.addEventListener("DOMContentLoaded", function () {
   const historyContent = getEl("historyContent");
   const openHistoryBtn = getEl("openHistoryBtn");
   const closeHistoryBtn = getEl("closeHistoryBtn");
+  const feedbackModal = getEl('feedbackModal');
+  const submitFeedbackBtn = getEl('submitFeedbackBtn');
+  const skipFeedbackBtn = getEl('skipFeedbackBtn');
+  const feedbackName = getEl('feedbackName');
+  const feedbackText = getEl('feedbackText');
+  
+  const roundTransition = getEl('roundTransition');
+
+  // --- FEEDBACK STATE ---
+  let postFeedbackAction = null;
+
 
   // Lobby meta labels
   if (roomMaxPlayersEl) roomMaxPlayersEl.textContent = MAX_PLAYERS;
@@ -419,6 +430,70 @@ document.addEventListener("DOMContentLoaded", function () {
     exitLobbyBtn.onclick = () => {
       if (unsubscribe) unsubscribe();
       showScreen(mainMenu);
+    };
+  }
+  // --- FEEDBACK HELPERS ---
+  function getStarValue(group) {
+    const checked = document.querySelector(`input[name="${group}"]:checked`);
+    return checked ? Number(checked.value) : null;
+  }
+
+  function openFeedback(reason) {
+    // You can log or store the reason if you want
+    console.log("Opening feedback for reason:", reason);
+    if (!feedbackModal) {
+      // If somehow the modal is missing, just fall back
+      if (typeof postFeedbackAction === "function") {
+        postFeedbackAction();
+        postFeedbackAction = null;
+      }
+      return;
+    }
+    feedbackModal.classList.remove("hidden");
+    feedbackModal.style.display = "flex";
+  }
+
+  function closeFeedback() {
+    if (!feedbackModal) return;
+    feedbackModal.style.display = "none";
+    feedbackModal.classList.add("hidden");
+    if (typeof postFeedbackAction === "function") {
+      postFeedbackAction();
+      postFeedbackAction = null;
+    }
+  }
+
+  // Wire feedback buttons
+  if (submitFeedbackBtn) {
+    submitFeedbackBtn.onclick = async () => {
+      const name = feedbackName ? feedbackName.value.trim() : "";
+      const func = getStarValue("func");
+      const over = getStarValue("over");
+      const gui  = getStarValue("gui");
+      const text = feedbackText ? feedbackText.value.trim() : "";
+
+      try {
+        if (db && roomId) {
+          await db.collection("rmcs_feedback").add({
+            roomId,
+            name: name || (currentUserData && currentUserData.username) || "Unknown Agent",
+            ratingFunc: func,
+            ratingOverall: over,
+            ratingGui: gui,
+            text,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      } catch (e) {
+        console.error("Feedback save failed", e);
+      }
+      closeFeedback();
+    };
+  }
+
+  if (skipFeedbackBtn) {
+    skipFeedbackBtn.onclick = () => {
+      closeFeedback();
     };
   }
 
