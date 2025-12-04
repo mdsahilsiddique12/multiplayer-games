@@ -60,6 +60,7 @@
       justify-content: center;
       min-height: 100vh;
       padding: 1rem;
+      flex: 1 0 auto;
     }
 
     /* Cyber Panels */
@@ -94,50 +95,58 @@
 
     .active-screen { display: flex; flex-direction: column; gap: 1.5rem; }
 
-    .cyber-footer {
-      width: 100%;
+    /* FOOTER STYLING */
+    .gn-footer {
+      flex-shrink: 0;
+      padding: 1.5rem 0 2.5rem;
       text-align: center;
-      padding: 2rem 1rem;
-      background: transparent;
       font-family: 'Rajdhani', sans-serif;
-      color: #9bbcd6; 
-      letter-spacing: 2px;
-      border-top: 1px solid rgba(0, 255, 255, 0.15);
-      margin-top: 4rem;
-    }
-    
-    .cyber-footer .divider {
-      margin: 0 8px;
-      opacity: 0.4;
-    }
-    
-    .footer-brand {
-      font-size: 1rem;
-      margin-bottom: 0.8rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
+      color: rgba(226, 232, 240, 0.6);
     }
     
-    .footer-links {
-      margin-bottom: 1rem;
+    .gn-footer-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
     }
     
-    .footer-link {
-      color: #4ef3ff;
+    .gn-footer-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .gn-footer-title {
+      color: #e5e7eb;
+    }
+    
+    .gn-footer-sub {
+      color: #9ca3af;
+    }
+    
+    .gn-footer-separator {
+      color: #4b5563;
+    }
+    
+    .gn-footer-links a {
+      color: #60f5ff;
       text-decoration: none;
-      font-size: 0.9rem;
-      transition: 0.25s;
     }
     
-    .footer-link:hover {
-      color: #00f7ff;
-      text-shadow: 0 0 8px #00faff;
+    .gn-footer-links a:hover {
+      color: #f97316;
+      text-shadow: 0 0 8px rgba(249, 115, 22, 0.7);
     }
     
-    .footer-rating {
-      font-size: 0.8rem;
-      opacity: 0.6;
+    .gn-footer-rating span:last-child {
+      color: #facc15;
     }
-    
     .rating {
       color: #ffdd57;
       text-shadow: 0 0 6px rgba(255, 215, 50, 0.6);
@@ -761,26 +770,30 @@
     </div>
   </div>
   
-  <footer class="cyber-footer">
-    <div class="footer-brand">
-      <span class="studio-name">GAME NEXUS STUDIOS</span>
-      <span class="divider">•</span>
-      <span class="creator">Architected by Sahil – Full Stack Developer</span>
-    </div>
+  <footer class="gn-footer">
+    <div class="gn-footer-inner">
+      <!-- Line 1: Studio credit -->
+      <div class="gn-footer-row gn-footer-brand">
+        <span class="gn-footer-title">Game Nexus Studios</span>
+        <span class="gn-footer-separator">•</span>
+        <span class="gn-footer-sub">Architected by Sahil · Full Stack Developer</span>
+      </div>
   
-    <div class="footer-links">
-      <a href="privacy.html" class="footer-link">Privacy Policy</a>
-      <span class="divider">•</span>
-      <a href="terms.html" class="footer-link">Terms of Service</a>
-    </div>
+      <!-- Line 2: Policy links -->
+      <div class="gn-footer-row gn-footer-links">
+        <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+        <span class="gn-footer-separator">•</span>
+        <a href="tos.html" target="_blank" rel="noopener">Terms of Service</a>
+      </div>
   
-    <div class="footer-rating">
-      GAME NEXUS — <span class="rating">Rated 9+</span>
+      <!-- Line 3: Rating -->
+      <div class="gn-footer-row gn-footer-rating">
+        <span>Game Nexus</span>
+        <span class="gn-footer-separator">•</span>
+        <span>Rated 9+</span>
+      </div>
     </div>
   </footer>
-
-
-
 
 </body>
 </html>
