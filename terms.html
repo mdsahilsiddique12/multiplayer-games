@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Terms of Service • Game Nexus</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --neon-blue: #00f3ff;
+      --neon-pink: #bc13fe;
+      --neon-green: #0aff0a;
+      --dark-bg: #050510;
+      --grid-color: rgba(0, 243, 255, 0.1);
+    }
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background-color: var(--dark-bg);
+      background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: center center;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%),
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+      background-size: 100% 2px, 3px 100%;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .font-cyber { font-family: 'Orbitron', sans-serif; }
+    .panel {
+      background: rgba(5, 5, 25, 0.9);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.25);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+    a { color: var(--neon-blue); }
+    a:hover { color: var(--neon-pink); }
+    .section-title {
+      font-size: 0.85rem;
+      letter-spacing: 0.22em;
+    }
+  </style>
+</head>
+<body class="relative">
+  <div class="min-h-screen flex flex-col items-center px-4 py-10">
+    <!-- Top bar -->
+    <div class="w-full max-w-5xl flex items-center justify-between mb-6">
+      <div>
+        <h1 class="font-cyber text-2xl md:text-3xl text-neon-blue tracking-[0.25em] uppercase">
+          Game Nexus
+        </h1>
+        <p class="text-[10px] md:text-xs text-gray-400 tracking-[0.25em] uppercase">
+          Game Nexus Studios • Terms of Service
+        </p>
+      </div>
+      <a href="index.html" class="text-xs md:text-sm text-gray-400 hover:text-neon-blue no-underline border border-transparent hover:border-neon-blue px-3 py-1 rounded-full font-cyber tracking-[0.2em] uppercase">
+        ⬅ Back to Game
+      </a>
+    </div>
+
+    <!-- Main Panel -->
+    <main class="w-full max-w-5xl panel p-6 md:p-10 relative z-10 text-sm md:text-base leading-relaxed">
+      <h2 class="font-cyber text-xl md:text-2xl text-white mb-4">Terms of Service</h2>
+      <p class="text-xs text-gray-400 mb-6">
+        Last updated: <span id="tos-date">December 4, 2025</span>
+      </p>
+
+      <p class="mb-4">
+        These Terms of Service (“Terms”) govern your access to and use of <strong>Game Nexus</strong> (the “Game”)
+        and related services provided by <strong>Game Nexus Studios</strong> (“we”, “us”, “our”).
+      </p>
+
+      <p class="mb-4">
+        By playing the Game or accessing our services, you agree to these Terms. If you do not agree, please do not use the Game.
+      </p>
+
+      <!-- 1. Eligibility -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">1. Eligibility & Age Rating</h3>
+        <p class="mb-2">
+          The Game is rated <strong>9+</strong>. You must be old enough to use the Game in your country,
+          or use it under the supervision and permission of a parent or legal guardian.
+        </p>
+        <p class="mb-2">
+          By using the Game, you confirm that you meet the age requirements and have any necessary permissions.
+        </p>
+      </section>
+
+      <!-- 2. Account & Access -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">2. Accounts & Access</h3>
+        <p class="mb-2">
+          To access some features (leaderboards, inventory, cloud save, etc.), you may need an account or sign‑in method
+          (for example via Firebase Authentication or a platform login).
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>You are responsible for your account activity and keeping your login secure.</li>
+          <li>You agree not to share accounts or use another person’s account without permission.</li>
+          <li>We may suspend or terminate accounts that violate these Terms or harm other players.</li>
+        </ul>
+      </section>
+
+      <!-- 3. Fair Play -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">3. Fair Play & Acceptable Use</h3>
+        <p class="mb-2">
+          You agree to play fairly and not misuse the Game. You must not:
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>Use cheats, bots, hacks, exploits, or unauthorized third‑party tools.</li>
+          <li>Disrupt matches, spam, or intentionally ruin other players’ experiences.</li>
+          <li>Harass, threaten, bully, or abuse other players in chat or any channel.</li>
+          <li>Upload or share illegal, hateful, or inappropriate content.</li>
+          <li>Reverse engineer, decompile, or try to access the Game’s source code.</li>
+          <li>Use the Game for any unlawful purpose or to violate any laws.</li>
+        </ul>
+        <p class="mt-2">
+          We may take action (warning, mute, kick from room, temporary or permanent ban) if we detect cheating or abusive behaviour.
+        </p>
+      </section>
+
+      <!-- 4. Virtual Items & Currency -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">4. Virtual Items, In‑Game Currency & Subscriptions</h3>
+        <p class="mb-2">
+          The Game may include:
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>Virtual currencies (coins or similar) that can be earned or purchased.</li>
+          <li>Virtual items (skins, avatars, effects, VIP status, season passes).</li>
+          <li>Subscriptions that unlock extra content or bonuses for a period of time.</li>
+        </ul>
+        <p class="mt-2">
+          These virtual items and currencies:
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>Have no real‑world monetary value outside the Game.</li>
+          <li>Are personal, non‑transferable licenses, not property rights.</li>
+          <li>Cannot usually be refunded, exchanged, or converted into cash (subject to platform policies and law).</li>
+        </ul>
+        <p class="mt-2">
+          Payments are processed by third‑party platforms (Google Play, Apple, etc.). Their terms and refund policies apply.
+        </p>
+      </section>
+
+      <!-- 5. Ads -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">5. Advertisements</h3>
+        <p class="mb-2">
+          The Game may display ads (for example through Google AdMob or Unity Ads).
+          We aim to show ads in a way that does not destroy the gameplay experience.
+        </p>
+        <p class="mb-2">
+          Some ads may be rewarded (e.g., watching an ad to gain a bonus). You are never forced to purchase anything to continue playing the core game.
+        </p>
+      </section>
+
+      <!-- 6. Intellectual Property -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">6. Intellectual Property</h3>
+        <p class="mb-2">
+          All rights in and to the Game, including its code, design, artwork, logos, music, and other content, are owned by
+          <strong>Game Nexus Studios</strong> or its licensors.
+        </p>
+        <p class="mb-2">
+          You are granted a personal, limited, non‑exclusive, revocable license to use the Game for personal entertainment only,
+          according to these Terms. You may not copy, distribute, or exploit the Game commercially without written permission.
+        </p>
+      </section>
+
+      <!-- 7. User Content -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">7. User‑Generated Content</h3>
+        <p class="mb-2">
+          If the Game allows you to send messages, chat, or create other content (“User Content”):
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>You are responsible for the content you share.</li>
+          <li>You must not share illegal, harmful, or offensive content.</li>
+          <li>You give us a non‑exclusive license to display and transmit that content as part of the Game.</li>
+        </ul>
+        <p class="mt-2">
+          We may remove or moderate User Content that violates these Terms or harms other players.
+        </p>
+      </section>
+
+      <!-- 8. Data & Privacy -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">8. Privacy & Data</h3>
+        <p class="mb-2">
+          Our use of data is described in the <a href="privacy.html">Privacy Policy</a>.
+          By using the Game, you also agree to how we handle information as described there.
+        </p>
+      </section>
+
+      <!-- 9. Updates & Changes -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">9. Updates, Changes & Availability</h3>
+        <p class="mb-2">
+          We may update, modify, or remove parts of the Game at any time (for example to fix bugs, adjust balance, or add new features).
+          We are not obligated to keep any specific feature forever.
+        </p>
+        <p class="mb-2">
+          The Game may occasionally be unavailable due to maintenance, technical issues, or reasons beyond our control.
+        </p>
+      </section>
+
+      <!-- 10. Termination -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">10. Suspension & Termination</h3>
+        <p class="mb-2">
+          We may suspend or terminate your access to the Game if you:
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>Seriously or repeatedly violate these Terms.</li>
+          <li>Use cheats, hacks, or engage in abuse or harassment.</li>
+          <li>Try to damage the Game, our services, or other players.</li>
+        </ul>
+        <p class="mt-2">
+          If your access is terminated, you may lose access to your account, progress, and virtual items, to the extent allowed by law and platform rules.
+        </p>
+      </section>
+
+      <!-- 11. Disclaimers & Liability -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">11. Disclaimers & Limitation of Liability</h3>
+        <p class="mb-2">
+          The Game is provided “as is” and “as available” without any guarantees. To the maximum extent allowed by law,
+          we do not promise that the Game will be error‑free, uninterrupted, or meet your expectations.
+        </p>
+        <p class="mb-2">
+          To the extent permitted by law, we are not responsible for any indirect, incidental, or special damages that result from using or not being able to use the Game.
+        </p>
+      </section>
+
+      <!-- 12. Changes to Terms -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">12. Changes to These Terms</h3>
+        <p class="mb-2">
+          We may update these Terms from time to time. When we do, we will update the “Last updated” date at the top.
+        </p>
+        <p class="mb-2">
+          If you continue to use the Game after changes take effect, you are agreeing to the new Terms.
+        </p>
+      </section>
+
+      <!-- 13. Contact -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">13. Contact</h3>
+        <p class="mb-2">
+          If you have questions about these Terms, you can contact:
+        </p>
+        <p class="text-sm text-gray-200">
+          <strong>Game Nexus Studios</strong><br>
+          Developer: Sahil<br>
+          Email: <span class="text-neon-blue">[your‑contact‑email@example.com]</span>
+        </p>
+        <p class="mt-3 text-xs text-gray-500">
+          Replace the email above with your real contact email before publishing.
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
