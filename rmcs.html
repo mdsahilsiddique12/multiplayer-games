@@ -474,9 +474,22 @@
       <div id="mainMenu" class="menu-screen active-screen">
         <button class="cyber-btn w-full create-btn">Initialize Room</button>
         <button class="cyber-btn w-full secondary join-btn">Join Network</button>
-        <!-- NEW BUTTON -->
         <button id="openStoreBtn" class="cyber-btn w-full" style="border-color: #FFD700; color: #FFD700;">Access Store</button>
+      
+        <!-- PUBLIC LOBBY BROWSER -->
+        <div class="mt-6 border-t border-gray-800 pt-4">
+          <h3 class="font-cyber text-xs tracking-[0.25em] uppercase text-gray-400 mb-2">
+            Active Public Rooms
+          </h3>
+          <div id="publicLobbiesList"
+               class="max-h-48 overflow-y-auto space-y-2 text-[11px] font-mono text-gray-300">
+            <div class="text-gray-500 italic">
+              Scanning network…
+            </div>
+          </div>
+        </div>
       </div>
+
 
       <!-- 2. Create Room -->
       <div id="createScreen" class="menu-screen">
