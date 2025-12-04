@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Privacy Policy • Game Nexus</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind (same as your main game) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --neon-blue: #00f3ff;
+      --neon-pink: #bc13fe;
+      --neon-green: #0aff0a;
+      --dark-bg: #050510;
+      --grid-color: rgba(0, 243, 255, 0.1);
+    }
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background-color: var(--dark-bg);
+      background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: center center;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%),
+                  linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
+      background-size: 100% 2px, 3px 100%;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .font-cyber { font-family: 'Orbitron', sans-serif; }
+    .panel {
+      background: rgba(5, 5, 25, 0.9);
+      border: 1px solid rgba(0, 243, 255, 0.4);
+      box-shadow: 0 0 25px rgba(0, 243, 255, 0.25);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+    }
+    a { color: var(--neon-blue); }
+    a:hover { color: var(--neon-pink); }
+    .section-title {
+      font-size: 0.85rem;
+      letter-spacing: 0.22em;
+    }
+  </style>
+</head>
+<body class="relative">
+  <div class="min-h-screen flex flex-col items-center px-4 py-10">
+    <!-- Top bar -->
+    <div class="w-full max-w-5xl flex items-center justify-between mb-6">
+      <div>
+        <h1 class="font-cyber text-2xl md:text-3xl text-neon-blue tracking-[0.25em] uppercase">
+          Game Nexus
+        </h1>
+        <p class="text-[10px] md:text-xs text-gray-400 tracking-[0.25em] uppercase">
+          Game Nexus Studios • Privacy Policy
+        </p>
+      </div>
+      <a href="index.html" class="text-xs md:text-sm text-gray-400 hover:text-neon-blue no-underline border border-transparent hover:border-neon-blue px-3 py-1 rounded-full font-cyber tracking-[0.2em] uppercase">
+        ⬅ Back to Game
+      </a>
+    </div>
+
+    <!-- Main Panel -->
+    <main class="w-full max-w-5xl panel p-6 md:p-10 relative z-10 text-sm md:text-base leading-relaxed">
+      <h2 class="font-cyber text-xl md:text-2xl text-white mb-4">Privacy Policy</h2>
+      <p class="text-xs text-gray-400 mb-6">
+        Last updated: <span id="pp-date">December 4, 2025</span>
+      </p>
+
+      <p class="mb-4">
+        This Privacy Policy explains how <strong>Game Nexus Studios</strong> (“we”, “us”, “our”) collects, uses and protects information when you play
+        <strong>Game Nexus</strong> (the “Game”) and use any related services, websites or features (collectively, the “Services”).
+      </p>
+
+      <p class="mb-4">
+        By accessing or using the Game, you agree to the collection and use of information in accordance with this Privacy Policy.
+        If you do not agree, please do not use the Game.
+      </p>
+
+      <!-- 1. Information We Collect -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">1. Information We Collect</h3>
+        <p class="mb-2">We may collect the following categories of information:</p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>
+            <strong>Account & Login Data:</strong> When you sign in (for example, using Firebase Authentication),
+            we may collect an identifier such as your user ID, display name, and email address (if provided by the provider).
+          </li>
+          <li>
+            <strong>Gameplay Data:</strong> Room codes, match history, scores, roles, XP, in‑game currency, purchased items,
+            and other in‑game actions or progress.
+          </li>
+          <li>
+            <strong>Device & Technical Data:</strong> IP address, device type, operating system, browser type, language,
+            crash logs, and other technical information used to keep the Game secure and functioning.
+          </li>
+          <li>
+            <strong>Analytics Data:</strong> Using tools such as Firebase Analytics, we may collect anonymous or aggregated
+            information about how players use the Game (session length, popular modes, retention, etc.).
+          </li>
+          <li>
+            <strong>Payment & Purchase Information:</strong> When you make in‑app purchases, subscriptions,
+            or buy in‑game currency, the payment is processed by third‑party platforms (such as Google Play, Apple App Store, or payment gateways).
+            We do not store full payment card details ourselves, but we may receive transaction IDs or purchase confirmations.
+          </li>
+          <li>
+            <strong>Communication Data:</strong> If the Game includes chat, feedback forms, or support messages,
+            we may collect the messages you send so we can moderate and improve the Game.
+          </li>
+        </ul>
+      </section>
+
+      <!-- 2. How We Use Information -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">2. How We Use Your Information</h3>
+        <p class="mb-2">We use the information we collect for purposes such as:</p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>To operate, maintain, and improve the Game and its features.</li>
+          <li>To create and manage your player profile, XP, rankings, and in‑game inventory.</li>
+          <li>To provide fair matchmaking, rooms, lobbies, and multiplayer sessions.</li>
+          <li>To process in‑app purchases, subscriptions, and in‑game currency transactions.</li>
+          <li>To show in‑game ads (for example via Google AdMob or Unity Ads) in a way that tries not to disturb gameplay.</li>
+          <li>To analyze Game usage so we can balance gameplay, fix bugs, and add new features.</li>
+          <li>To prevent fraud, cheating, and abuse, and to enforce our Terms of Service.</li>
+          <li>To respond to your questions, feedback, and support requests.</li>
+        </ul>
+      </section>
+
+      <!-- 3. Ads & Analytics -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">3. Ads, Analytics & Tracking</h3>
+        <p class="mb-2">
+          We may integrate third‑party services such as:
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li><strong>Google AdMob / Unity Ads:</strong> to display advertisements inside the Game.</li>
+          <li><strong>Firebase Analytics or similar tools:</strong> to gather anonymous statistics about Game usage.</li>
+        </ul>
+        <p class="mt-2">
+          These providers may use cookies, mobile identifiers, or similar technologies to operate, measure, and improve their services.
+          Their use of data is governed by their own privacy policies.
+        </p>
+      </section>
+
+      <!-- 4. Children & Age Rating -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">4. Age Rating & Children</h3>
+        <p class="mb-2">
+          The Game is designed for players aged <strong>9+</strong>. Some content may not be suitable for very young children
+          (for example light competitive gameplay, chat features, or in‑app purchases).
+        </p>
+        <p class="mb-2">
+          If you are under the minimum age required by your country to give consent on your own,
+          you should only use the Game with a parent or guardian’s permission and supervision.
+        </p>
+      </section>
+
+      <!-- 5. Sharing Information -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">5. How We Share Your Information</h3>
+        <p class="mb-2">
+          We do <strong>not</strong> sell your personal data. We may share limited information with:
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>
+            <strong>Service Providers:</strong> such as hosting providers, analytics tools, payment processors,
+            and ad networks that help us run the Game.
+          </li>
+          <li>
+            <strong>Legal & Safety:</strong> if required by law, court order, or to protect our rights,
+            other players, or the public (for example when investigating cheating, abuse, or fraud).
+          </li>
+          <li>
+            <strong>Business Changes:</strong> if we ever merge, sell, or transfer the Game to another entity,
+            your data may transfer as part of the service, while keeping the same level of protection.
+          </li>
+        </ul>
+      </section>
+
+      <!-- 6. Data Storage & Security -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">6. Data Storage & Security</h3>
+        <p class="mb-2">
+          We store data using third‑party infrastructure providers such as Firebase / Google Cloud.
+          We use reasonable technical and organizational measures to protect your information from unauthorized access, loss, or misuse.
+        </p>
+        <p class="mb-2">
+          However, no system is perfectly secure. We cannot guarantee absolute security, but we try to keep your data as safe as reasonably possible.
+        </p>
+      </section>
+
+      <!-- 7. Your Choices -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">7. Your Rights & Choices</h3>
+        <p class="mb-2">
+          Depending on your region, you may have rights such as:
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>Accessing the information we have about you.</li>
+          <li>Requesting correction of inaccurate information.</li>
+          <li>Requesting deletion of stored data, where legally allowed.</li>
+          <li>Opting out of certain analytics or personalized ads (where supported).</li>
+        </ul>
+        <p class="mt-2">
+          You can contact us to request these actions (see <strong>Contact</strong> section below).
+          Some requests may affect your ability to use the Game.
+        </p>
+      </section>
+
+      <!-- 8. In‑App Purchases & Currency -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">8. In‑App Purchases, Subscriptions & In‑Game Currency</h3>
+        <p class="mb-2">
+          The Game includes:
+        </p>
+        <ul class="list-disc list-inside space-y-2 text-sm text-gray-300">
+          <li>Cosmetic items (skins, VIP status, avatars, effects).</li>
+          <li>In‑game currencies and rewards.</li>
+          <li>Potential subscriptions or season passes with extra content.</li>
+        </ul>
+        <p class="mt-2">
+          All real‑money purchases are handled by the platform’s store or payment provider.
+          Please review their terms and policies for more information about payments and refunds.
+        </p>
+      </section>
+
+      <!-- 9. Changes to this Policy -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">9. Changes to this Privacy Policy</h3>
+        <p class="mb-2">
+          We may update this Privacy Policy from time to time. When we do, we will change the “Last updated” date at the top.
+        </p>
+        <p class="mb-2">
+          Significant changes may be announced inside the Game or on our website.
+          Continuing to use the Game after changes means you accept the updated Policy.
+        </p>
+      </section>
+
+      <!-- 10. Contact -->
+      <section class="mt-8">
+        <h3 class="section-title text-neon-blue uppercase mb-2 font-cyber">10. Contact</h3>
+        <p class="mb-2">
+          If you have any questions about this Privacy Policy or how we handle data, you can contact:
+        </p>
+        <p class="text-sm text-gray-200">
+          <strong>Game Nexus Studios</strong><br>
+          Developer: Sahil<br>
+          Email: <span class="text-neon-blue">[your‑contact‑email@example.com]</span>
+        </p>
+        <p class="mt-3 text-xs text-gray-500">
+          Replace the email address above with your real contact email before publishing.
+        </p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
