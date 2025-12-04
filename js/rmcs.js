@@ -47,6 +47,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const skipFeedbackBtn = getEl('skipFeedbackBtn');
   const feedbackName = getEl('feedbackName');
   const feedbackText = getEl('feedbackText');
+
+  const publicLobbiesList = getEl("publicLobbiesList");
+  let unsubscribeLobbyList = null;
+
   
   const roundTransition = getEl('roundTransition');
 
@@ -356,6 +360,81 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     renderStore(category);
   };
+
+  // --- PUBLIC LOBBY BROWSER ---
+  function startLobbyBrowser() {
+    if (!publicLobbiesList) return;
+
+    // Clean old listener if any
+    if (unsubscribeLobbyList) {
+      unsubscribeLobbyList();
+      unsubscribeLobbyList = null;
+    }
+
+    // You can change filters later (e.g. isPublic === true)
+    const q = db.collection("rmcs_rooms")
+      .where("phase", "==", "lobby");
+
+    unsubscribeLobbyList = q.onSnapshot((snap) => {
+      if (snap.empty) {
+        publicLobbiesList.innerHTML = `
+          <div class="text-gray-500 italic">
+            No public rooms online. Spin up a new one!
+          </div>`;
+        return;
+      }
+
+      const rooms = snap.docs
+        .map((doc) => {
+          const d = doc.data();
+          const players = (d.players || []).length;
+          const max = (typeof d.maxPlayers === "number") ? d.maxPlayers : 8;
+          const hostName = (d.players && d.players[0] && d.players[0].name) || "Host";
+          return {
+            code: doc.id,
+            players,
+            max,
+            hostName,
+            created: d.created ? d.created.toDate() : null
+          };
+        })
+        .sort((a, b) => (b.created?.getTime() || 0) - (a.created?.getTime() || 0));
+
+      publicLobbiesList.innerHTML = rooms.map((r) => `
+        <div class="border border-gray-800 rounded bg-black/40 px-3 py-2 flex items-center justify-between">
+          <div>
+            <div class="text-gray-100">
+              <span class="text-neon-blue font-bold tracking-[0.2em]">${r.code}</span>
+            </div>
+            <div class="text-[10px] text-gray-400 mt-0.5">
+              Host: <span class="text-gray-200">${r.hostName}</span> · 
+              ${r.players}/${r.max} operatives
+            </div>
+          </div>
+          <button
+            class="px-2 py-1 text-[10px] uppercase tracking-[0.2em] border border-neon-blue rounded hover:bg-neon-blue/20 transition join-public-btn"
+            data-room-code="${r.code}">
+              Join
+          </button>
+        </div>
+      `).join("");
+    });
+  }
+
+  // Click on Join button inside public lobby list → prefill Join screen
+  if (publicLobbiesList) {
+    publicLobbiesList.addEventListener("click", (e) => {
+      const btn = e.target.closest(".join-public-btn");
+      if (!btn) return;
+      const code = btn.getAttribute("data-room-code");
+      if (!code) return;
+
+      // Move to Join screen & prefill code
+      showScreen(joinScreen);
+      const joinCodeInput = getEl("joinRoomCode");
+      if (joinCodeInput) joinCodeInput.value = code;
+    });
+  }
 
   // --- 6. NAVIGATION / SCREEN SWITCHING ---
   function showScreen(screen) {
@@ -1437,25 +1516,24 @@ document.addEventListener("DOMContentLoaded", function () {
     const params = new URLSearchParams(window.location.search);
     const autoRoom = params.get("room");
     if (!autoRoom) return;
-
     // Move to Join screen
     showScreen(joinScreen);
     const joinCodeInput = getEl("joinRoomCode");
     if (joinCodeInput) joinCodeInput.value = autoRoom;
-
     const waitForAuth = setInterval(() => {
       const user = firebase.auth().currentUser;
       if (!user) return;
       clearInterval(waitForAuth);
-
       const nameInput = getEl("joinPlayerName");
       if (nameInput && !nameInput.value.trim()) {
         nameInput.value = "Player_" + Math.floor(Math.random() * 9999);
       }
-
       setTimeout(() => {
         if (joinRoomFinal) joinRoomFinal.click();
       }, 800);
     }, 300);
   })();
+
+  // Start public lobby watcher on load
+  startLobbyBrowser();
 });
