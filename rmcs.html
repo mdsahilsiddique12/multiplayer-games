@@ -94,6 +94,69 @@
 
     .active-screen { display: flex; flex-direction: column; gap: 1.5rem; }
 
+    .cyber-footer {
+      width: 100%;
+      text-align: center;
+      padding: 2rem 1rem;
+      background: transparent;
+      font-family: 'Rajdhani', sans-serif;
+      color: #9bbcd6; 
+      letter-spacing: 2px;
+      border-top: 1px solid rgba(0, 255, 255, 0.15);
+      margin-top: 4rem;
+    }
+    
+    .cyber-footer .divider {
+      margin: 0 8px;
+      opacity: 0.4;
+    }
+    
+    .footer-brand {
+      font-size: 1rem;
+      margin-bottom: 0.8rem;
+      text-transform: uppercase;
+    }
+    
+    .footer-links {
+      margin-bottom: 1rem;
+    }
+    
+    .footer-link {
+      color: #4ef3ff;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: 0.25s;
+    }
+    
+    .footer-link:hover {
+      color: #00f7ff;
+      text-shadow: 0 0 8px #00faff;
+    }
+    
+    .footer-rating {
+      font-size: 0.8rem;
+      opacity: 0.6;
+    }
+    
+    .rating {
+      color: #ffdd57;
+      text-shadow: 0 0 6px rgba(255, 215, 50, 0.6);
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 600px) {
+      .cyber-footer {
+        font-size: 12px;
+        letter-spacing: 1px;
+        padding: 1.5rem;
+      }
+      .footer-links, .footer-brand {
+        display: block;
+        margin: 0.6rem 0;
+      }
+    }
+
+
     /* Cyber Inputs */
     .input-field {
       width: 100%;
