@@ -165,6 +165,37 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+
+  // --- AI GAME MASTER TERMINAL ---
+  function pushTerminalMessage(message, tone = "system") {
+    const box = document.getElementById("terminalLog");
+    if (!box) return;
+
+    const now = new Date();
+    const hh = now.getHours().toString().padStart(2, "0");
+    const mm = now.getMinutes().toString().padStart(2, "0");
+    const stamp = `${hh}:${mm}`;
+
+    let colorClass = "text-neon-blue";
+    if (tone === "hint") colorClass = "text-cyan-300";
+    if (tone === "warning") colorClass = "text-red-400";
+    if (tone === "success") colorClass = "text-neon-green";
+
+    const line = document.createElement("div");
+    line.className = "border border-gray-800 rounded px-2 py-1 bg-black/40";
+    line.innerHTML = `
+      <span class="text-gray-500 mr-1">[${stamp}]</span>
+      <span class="${colorClass} font-bold">GM:</span>
+      <span class="text-gray-300 ml-1">${message}</span>
+    `;
+
+    box.prepend(line); // newest on top
+    // Limit to last 25 entries
+    while (box.children.length > 25) {
+      box.removeChild(box.lastChild);
+    }
+  }
+
   // --- 5. IN‑GAME SHOP / BLACK MARKET ---
 
   const STORE_ITEMS = [
@@ -686,59 +717,83 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- 8. GAME LOOP ---
+  // --- 8. GAME LOOP ---
   function listenToRoom(roomCode) {
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;
     }
-  
+
     const roomRef = db.collection("rmcs_rooms").doc(roomCode);
-  
+    let lastPlayerCount = null;
+
     unsubscribe = roomRef.onSnapshot((docSnap) => {
-      // when room is deleted
-      if (!docSnap.exists) {
+      const data = docSnap.data();
+      if (!firebase.auth().currentUser) return;
+      const selfId = firebase.auth().currentUser.uid;
+
+      // ROOM DELETED → show feedback to this player
+      if (!data) {
         if (unsubscribe) {
           unsubscribe();
           unsubscribe = null;
         }
-        // show feedback + go back to main menu
         postFeedbackAction = () => {
           showScreen(mainMenu);
         };
+        pushTerminalMessage("Room was terminated by host. Debriefing...", "warning");
         openFeedback("room_closed");
         return;
       }
-  
-      const data = docSnap.data();   // ✅ USE docSnap HERE
-  
-      if (!firebase.auth().currentUser) return;
-      const selfId = firebase.auth().currentUser.uid;
-  
+
+      // If you were kicked
       if (!data.players.some((p) => p.id === selfId)) {
         alert("Kicked from Squad");
+        pushTerminalMessage("You have been removed from this room.", "warning");
         showScreen(mainMenu);
         return;
       }
 
       // Update room meta
       if (currentRoomCode) currentRoomCode.innerText = roomCode;
-      renderPlayersList(
-        data.players,
-        data.host,
-        selfId,
-        selfId === data.host,
-        data.muted || []
-      );
-      renderScoreboard(data.scores || {}, data.players);
-
-      if (roomPlayerCountEl) {
-        roomPlayerCountEl.textContent = data.players.length;
-      }
 
       const isHost = selfId === data.host;
+      const players = data.players || [];
+      const mutedArr = data.muted || [];
 
+      renderPlayersList(
+        players,
+        data.host,
+        selfId,
+        isHost,
+        mutedArr
+      );
+      renderScoreboard(data.scores || {}, players);
+
+      if (roomPlayerCountEl) {
+        roomPlayerCountEl.textContent = players.length;
+      }
+
+      // Game Master – player count changes
+      if (lastPlayerCount === null) {
+        // Initial join
+        pushTerminalMessage(
+          `Connected to room ${roomCode}. ${players.length} operative(s) online.`,
+          "system"
+        );
+      } else if (players.length !== lastPlayerCount) {
+        const diff = players.length - lastPlayerCount;
+        if (diff > 0) {
+          pushTerminalMessage(`${Math.abs(diff)} new operative(s) joined the network.`, "system");
+        } else {
+          pushTerminalMessage(`${Math.abs(diff)} operative(s) disconnected.`, "system");
+        }
+      }
+      lastPlayerCount = players.length;
+
+      // Host can cancel room
       if (cancelRoomBtn) {
-        cancelRoomBtn.style.display = isHost ? 'block' : 'none';
+        cancelRoomBtn.style.display = isHost ? "block" : "none";
         cancelRoomBtn.onclick = async () => {
           if (!isHost) return;
           if (confirm("Abort mission for everyone?")) {
@@ -751,15 +806,14 @@ document.addEventListener("DOMContentLoaded", function () {
               unsubscribe();
               unsubscribe = null;
             }
-            // Host also gets feedback
             postFeedbackAction = () => {
               showScreen(mainMenu);
             };
+            pushTerminalMessage("You terminated this mission. Debrief incoming.", "warning");
             openFeedback("host_terminated");
           }
         };
       }
-
 
       // Host player management (kick / mute)
       if (isHost) {
@@ -768,8 +822,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Phase transitions
       if (data.phase !== lastPhase) {
+        if (data.phase === "lobby") {
+          pushTerminalMessage("Lobby phase. Waiting for enough operatives to begin.", "hint");
+        }
         if (data.phase === "reveal") {
           playSound("reveal");
+          pushTerminalMessage("Roles assigned. Raja & Sipahi: reveal at your discretion.", "hint");
           if (roundTransition) {
             roundTransition.classList.remove("hidden");
             roundTransition.style.display = "flex";
@@ -778,6 +836,12 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 2500);
           }
         }
+        if (data.phase === "guess") {
+          pushTerminalMessage("Sipahi is now choosing the Chor. Stay silent.", "hint");
+        }
+        if (data.phase === "roundResult") {
+          pushTerminalMessage("Round complete. Parsing results...", "system");
+        }
       }
       lastPhase = data.phase;
 
@@ -785,39 +849,37 @@ document.addEventListener("DOMContentLoaded", function () {
       if (data.phase === "lobby") {
         // hide overlay, show avatars
         if (gameContent) gameContent.style.display = "none";
-        renderAvatarsTable(data.players, selfId, data.host);
+        renderAvatarsTable(players, selfId, data.host);
 
         if (startGameBtn) {
           startGameBtn.style.display = "flex";
-
-          const playerCount = data.players.length;
+          const playerCount = players.length;
           const canStart = isHost && playerCount >= MIN_PLAYERS;
-
           startGameBtn.disabled = !canStart;
           startGameBtn.innerText = canStart
             ? "INITIATE SEQUENCE"
             : `WAITING (${playerCount}/${MIN_PLAYERS})`;
 
+          if (canStart && lastPhase === "lobby") {
+            pushTerminalMessage("Minimum squad online. Host can initiate sequence.", "success");
+          }
+
           startGameBtn.onclick = () => {
             if (!canStart) return;
-
             const baseRoles = ["Raja", "Mantri", "Chor", "Sipahi"];
             const extraCount = Math.max(0, playerCount - baseRoles.length);
             const extraRoles = Array.from(
               { length: extraCount },
               () => "Civilian"
             );
-
             const roles = [...baseRoles, ...extraRoles].sort(
               () => Math.random() - 0.5
             );
-
-            const pr = data.players.map((p, i) => ({
+            const pr = players.map((p, i) => ({
               id: p.id,
               name: p.name,
               role: roles[i]
             }));
-
             roomRef.update({
               phase: "reveal",
               playerRoles: pr,
@@ -841,6 +903,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
+
 
   // --- 9. RENDERERS / SCREENS ---
 
@@ -1042,6 +1105,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       </div>
     `;
+
+    // Game Master round summary
+    const summary = isCorrect
+      ? `Sipahi correctly identified the Chor. Security protocol successful.`
+      : `Chor evaded detection. Security breach recorded.`;
+    pushTerminalMessage(summary, isCorrect ? "success" : "warning");
 
     if (isHost) {
       setTimeout(() => {
