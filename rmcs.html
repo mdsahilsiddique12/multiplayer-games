@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RMCS: Protocol 2448</title>
-  
+
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
+
   <!-- Google Fonts: Futuristic & Tech -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  />
+
   <!-- Internal CSS: Cyberpunk / Neon Theme -->
   <style>
     :root {
@@ -25,10 +28,9 @@
     }
 
     body {
-      font-family: 'Rajdhani', sans-serif;
+      font-family: "Rajdhani", sans-serif;
       background-color: var(--dark-bg);
-      background-image: 
-        linear-gradient(var(--grid-color) 1px, transparent 1px),
+      background-image: linear-gradient(var(--grid-color) 1px, transparent 1px),
         linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
       background-size: 40px 40px;
       background-position: center center;
@@ -39,26 +41,44 @@
       flex-direction: column;
     }
 
-    html, body {
+    html,
+    body {
       height: 100%;
     }
-  
+
     /* CRT Scanline Effect Overlay */
     body::after {
       content: "";
       position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+        linear-gradient(
+          90deg,
+          rgba(255, 0, 0, 0.03),
+          rgba(0, 255, 0, 0.01),
+          rgba(0, 0, 255, 0.03)
+        );
       background-size: 100% 2px, 3px 100%;
       pointer-events: none;
       z-index: 9999;
     }
 
     /* Utility Classes */
-    .font-cyber { font-family: 'Orbitron', sans-serif; }
-    .text-neon-blue { color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
-    .text-neon-pink { color: var(--neon-pink); text-shadow: 0 0 10px var(--neon-pink); }
-    
+    .font-cyber {
+      font-family: "Orbitron", sans-serif;
+    }
+    .text-neon-blue {
+      color: var(--neon-blue);
+      text-shadow: 0 0 10px var(--neon-blue);
+    }
+    .text-neon-pink {
+      color: var(--neon-pink);
+      text-shadow: 0 0 10px var(--neon-pink);
+    }
+
     .centered-bg {
       display: flex;
       flex-direction: column;
@@ -74,45 +94,42 @@
       display: none;
       width: 100%;
       max-width: 420px;
-      max-height: 90vh; /* Prevent it from going off-screen */
+      max-height: 90vh;
       padding: 2.5rem;
       background: var(--glass-panel);
       border: 1px solid rgba(0, 243, 255, 0.3);
-      box-shadow: 0 0 20px rgba(0, 243, 255, 0.1), inset 0 0 20px rgba(0,0,0,0.8);
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.1), inset 0 0 20px rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(10px);
-      
-      /* --- FIX STARTS HERE --- */
-      /* Removed clip-path because it was cutting off the button at the bottom */
-      /* clip-path: polygon(0 10px, 10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); */
-      
-      border-radius: 12px; /* Nice rounded corners instead of clip-path */
-      overflow-y: auto;    /* Adds scrollbar if content is too tall */
-      /* --- FIX ENDS HERE --- */
-
+      /* removed clip-path so nothing gets cut off */
+      border-radius: 12px;
+      overflow-y: auto;
       animation: cyberFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    
+
     #terminalPanel,
     #scoreboard {
       min-width: 220px;
       max-width: 260px;
     }
 
-
-    .active-screen { display: flex; flex-direction: column; gap: 1.5rem; }
+    .active-screen {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
 
     /* FOOTER STYLING */
     .gn-footer {
       flex-shrink: 0;
       padding: 1.5rem 0 2.5rem;
       text-align: center;
-      font-family: 'Rajdhani', sans-serif;
+      font-family: "Rajdhani", sans-serif;
       font-size: 0.7rem;
       letter-spacing: 0.18em;
       text-transform: uppercase;
       color: rgba(226, 232, 240, 0.6);
     }
-    
+
     .gn-footer-inner {
       max-width: 960px;
       margin: 0 auto;
@@ -120,44 +137,45 @@
       flex-direction: column;
       gap: 0.35rem;
     }
-    
+
     .gn-footer-row {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
       gap: 0.5rem;
     }
-    
+
     .gn-footer-title {
       color: #e5e7eb;
     }
-    
+
     .gn-footer-sub {
       color: #9ca3af;
     }
-    
+
     .gn-footer-separator {
       color: #4b5563;
     }
-    
+
     .gn-footer-links a {
       color: #60f5ff;
       text-decoration: none;
     }
-    
+
     .gn-footer-links a:hover {
       color: #f97316;
       text-shadow: 0 0 8px rgba(249, 115, 22, 0.7);
     }
-    
+
     .gn-footer-rating span:last-child {
       color: #facc15;
     }
+
     .rating {
       color: #ffdd57;
       text-shadow: 0 0 6px rgba(255, 215, 50, 0.6);
     }
-    
+
     /* Mobile Responsive */
     @media (max-width: 600px) {
       .cyber-footer {
@@ -165,12 +183,12 @@
         letter-spacing: 1px;
         padding: 1.5rem;
       }
-      .footer-links, .footer-brand {
+      .footer-links,
+      .footer-brand {
         display: block;
         margin: 0.6rem 0;
       }
     }
-
 
     /* Cyber Inputs */
     .input-field {
@@ -180,85 +198,94 @@
       border: 1px solid #333;
       border-left: 4px solid var(--neon-blue);
       color: white;
-      font-family: 'Rajdhani', sans-serif;
+      font-family: "Rajdhani", sans-serif;
       font-size: 1.2rem;
       letter-spacing: 1px;
       transition: all 0.3s;
     }
+
     .input-field:focus {
       outline: none;
       border-color: var(--neon-blue);
       box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
     }
 
-    /* Cyber Buttons (Glitchy & Neon) */
+    /* Cyber Buttons */
     .cyber-btn {
       position: relative;
       background: transparent;
       border: 2px solid var(--neon-blue);
       color: var(--neon-blue);
       padding: 1rem 2rem;
-      font-family: 'Orbitron', sans-serif;
+      font-family: "Orbitron", sans-serif;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 2px;
       cursor: pointer;
       overflow: hidden;
       transition: 0.3s;
-      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+      clip-path: polygon(
+        10px 0,
+        100% 0,
+        100% calc(100% - 10px),
+        calc(100% - 10px) 100%,
+        0 100%,
+        0 10px
+      );
     }
+
     .cyber-btn:hover {
       background: var(--neon-blue);
       color: black;
       box-shadow: 0 0 30px var(--neon-blue);
       text-shadow: none;
     }
+
     .cyber-btn.secondary {
       border-color: var(--neon-pink);
       color: var(--neon-pink);
     }
+
     .cyber-btn.secondary:hover {
       background: var(--neon-pink);
       color: white;
       box-shadow: 0 0 30px var(--neon-pink);
     }
+
     .cyber-btn.danger {
       border-color: #ff003c;
       color: #ff003c;
     }
+
     .cyber-btn.danger:hover {
       background: #ff003c;
       color: white;
       box-shadow: 0 0 30px #ff003c;
     }
 
-        /* --- FIXED STAR RATING CSS --- */
+    /* Star Rating */
     .star-rating {
       display: flex;
-      flex-direction: row-reverse; /* This makes the stars flow 1 to 5 visually */
+      flex-direction: row-reverse;
       justify-content: flex-end;
       gap: 5px;
     }
-    
+
     .star-rating input {
-      display: none; /* Hide the actual radio buttons */
+      display: none;
     }
-    
+
     .star-rating label {
-      font-size: 30px; 
-      cursor: pointer; 
-      color: #4b5563; /* Default Gray */
+      font-size: 30px;
+      cursor: pointer;
+      color: #4b5563;
       transition: color 0.2s ease;
     }
 
-    /* COLOR LOGIC:
-       When you hover a star, or when a star is checked,
-       color THAT star and ALL stars that follow it in the DOM (which are visually to the left) 
-    */
     .star-rating label:hover,
     .star-rating label:hover ~ label,
     .star-rating input:checked ~ label {
-      color: var(--neon-green) !important; 
+      color: var(--neon-green) !important;
       text-shadow: 0 0 15px var(--neon-green);
     }
 
@@ -267,7 +294,7 @@
       background: rgba(0, 0, 0, 0.5);
       border: 1px dashed var(--neon-green);
       color: var(--neon-green);
-      font-family: 'Orbitron', monospace;
+      font-family: "Orbitron", monospace;
       padding: 1rem;
       border-radius: 4px;
       display: flex;
@@ -280,33 +307,48 @@
       position: relative;
       width: 320px;
       height: 320px;
-      margin: 1.25rem auto; /* was 2rem */
+      margin: 1.25rem auto;
       perspective: 1200px;
     }
+
     .table {
       position: absolute;
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: 
-        radial-gradient(circle, transparent 20%, rgba(0, 243, 255, 0.1) 60%, rgba(0, 243, 255, 0.4) 100%);
+      background: radial-gradient(
+        circle,
+        transparent 20%,
+        rgba(0, 243, 255, 0.1) 60%,
+        rgba(0, 243, 255, 0.4) 100%
+      );
       border: 2px solid rgba(0, 243, 255, 0.5);
-      box-shadow: 0 0 50px rgba(0, 243, 255, 0.2), inset 0 0 30px rgba(0, 243, 255, 0.2);
+      box-shadow: 0 0 50px rgba(0, 243, 255, 0.2),
+        inset 0 0 30px rgba(0, 243, 255, 0.2);
       transform: rotateX(40deg);
       animation: hologramPulse 4s infinite ease-in-out;
     }
-    /* Grid lines on table */
+
     .table::after {
-      content: '';
+      content: "";
       position: absolute;
       inset: 0;
       border-radius: 50%;
-      background: 
-        repeating-linear-gradient(0deg, transparent 0, transparent 19px, rgba(0, 243, 255, 0.1) 20px),
-        repeating-linear-gradient(90deg, transparent 0, transparent 19px, rgba(0, 243, 255, 0.1) 20px);
+      background: repeating-linear-gradient(
+          0deg,
+          transparent 0,
+          transparent 19px,
+          rgba(0, 243, 255, 0.1) 20px
+        ),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0,
+          transparent 19px,
+          rgba(0, 243, 255, 0.1) 20px
+        );
     }
 
-    /* Avatars (Floating Orbs) */
+    /* Avatars */
     .avatar {
       position: absolute;
       width: 70px;
@@ -317,11 +359,12 @@
       justify-content: center;
       z-index: 10;
       transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      background: rgba(0,0,0,0.8);
+      background: rgba(0, 0, 0, 0.8);
       border: 2px solid var(--neon-blue);
       border-radius: 50%;
       box-shadow: 0 0 15px var(--neon-blue);
     }
+
     .avatar-name {
       margin-top: 80px;
       font-size: 0.8rem;
@@ -332,94 +375,73 @@
       letter-spacing: 1px;
       white-space: nowrap;
       position: absolute;
-    
-      /* NEW COLORS – high contrast */
-      background: rgba(15, 23, 42, 0.95); /* deep slate */
-      color: #e5e7eb;                      /* light gray text */
+      background: rgba(15, 23, 42, 0.95);
+      color: #e5e7eb;
       border: 1px solid rgba(148, 163, 184, 0.9);
     }
-    
-    /* SPECIAL STYLE ONLY FOR SELF */
+
     .avatar-name-self {
-      border-color: #f97316;                  /* orange */
+      border-color: #f97316;
       color: #f97316;
       box-shadow: 0 0 14px rgba(249, 115, 22, 0.7);
     }
 
-    /* --- TERMINAL LOG SCROLLBAR & SIZING --- */
-    #terminalPanel {
-      /* just in case non‑Tailwind browsers ignore width classes */
-      max-height: 360px;
-    }
-    
-    #terminalLog {
-      scrollbar-width: thin;
-      scrollbar-color: var(--neon-blue) rgba(15,23,42,0.8);
-    }
-    
-    /* Chrome / Edge / Safari */
-    #terminalLog::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    #terminalLog::-webkit-scrollbar-track {
-      background: radial-gradient(circle at left, rgba(15,23,42,0.9), #020617);
-    }
-    
-    #terminalLog::-webkit-scrollbar-thumb {
-      background: linear-gradient(to bottom, var(--neon-blue), var(--neon-pink));
-      border-radius: 999px;
-      box-shadow: 0 0 10px rgba(0,243,255,0.6);
-    }
-    
-    #terminalLog::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(to bottom, var(--neon-pink), var(--neon-green));
-    }
-
-
-    /* Dynamic Game Content Overlay */
-    /* Dynamic Game Content Overlay */
+    /* Game Content Overlay */
     #gameContent {
       position: absolute;
-      /* Expand to cover the entire container, not just the table */
-      top: -60px; left: -20px; right: -20px; bottom: -110px; 
-      min-height: 450px; /* Force minimum height */
-      display: none; 
+      top: -60px;
+      left: -20px;
+      right: -20px;
+      bottom: -110px;
+      min-height: 450px;
+      display: none;
       flex-direction: column;
-      justify-content: center; /* Center content */
+      justify-content: center;
       align-items: center;
-      z-index: 100; /* Higher than avatars */
-      
-      background: rgba(5, 5, 16, 0.98); /* Darker background for readability */
+      z-index: 100;
+      background: rgba(5, 5, 16, 0.98);
       border: 1px solid var(--neon-pink);
       box-shadow: 0 0 50px rgba(188, 19, 254, 0.3);
       backdrop-filter: blur(15px);
-      
-      /* CRITICAL FIX: Remove clip-path so button isn't cut off */
-      /* clip-path: polygon(...)  <-- REMOVE THIS */
-      border-radius: 16px; 
-      
-      /* Add scrolling if content gets too tall */
-      overflow-y: auto; 
+      border-radius: 16px;
+      overflow-y: auto;
       padding: 1rem;
     }
 
-
     /* Animations */
     @keyframes cyberFadeIn {
-      from { opacity: 0; transform: scale(0.95) translateY(10px); filter: blur(10px); }
-      to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+      from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+        filter: blur(10px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: blur(0);
+      }
     }
+
     @keyframes hologramPulse {
-      0%, 100% { box-shadow: 0 0 30px rgba(0, 243, 255, 0.2), inset 0 0 20px rgba(0, 243, 255, 0.2); opacity: 0.8; }
-      50% { box-shadow: 0 0 60px rgba(0, 243, 255, 0.4), inset 0 0 40px rgba(0, 243, 255, 0.4); opacity: 1; }
+      0%,
+      100% {
+        box-shadow: 0 0 30px rgba(0, 243, 255, 0.2),
+          inset 0 0 20px rgba(0, 243, 255, 0.2);
+        opacity: 0.8;
+      }
+      50% {
+        box-shadow: 0 0 60px rgba(0, 243, 255, 0.4),
+          inset 0 0 40px rgba(0, 243, 255, 0.4);
+        opacity: 1;
+      }
     }
 
     /* Message Box */
     #messageBox {
-      background: rgba(0,0,0,0.8);
+      background: rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(5px);
     }
+
     #messageBoxContent {
       background: #111;
       border: 2px solid var(--neon-blue);
@@ -429,125 +451,199 @@
 
     /* Scoreboard */
     #scoreboard {
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.5);
       border: 1px solid #333;
       border-left: 2px solid var(--neon-green);
     }
+
     #scoreList .flex {
       border-bottom-color: #222;
     }
+
     @keyframes loadingBar {
-      0% { width: 0%; margin-left: 0; }
-      50% { width: 100%; margin-left: 0; }
-      100% { width: 0%; margin-left: 100%; }
+      0% {
+        width: 0%;
+        margin-left: 0;
+      }
+      50% {
+        width: 100%;
+        margin-left: 0;
+      }
+      100% {
+        width: 0%;
+        margin-left: 100%;
+      }
     }
-    /* --- Footer Credit Styling --- */
+
+    /* Footer Credit Box */
     .credit-box {
       display: inline-flex;
       flex-direction: column;
       align-items: center;
-      opacity: 0.5; /* Subtle by default */
+      opacity: 0.5;
       transition: 0.3s;
-      background: rgba(0,0,0,0.6); /* Dark background for readability */
+      background: rgba(0, 0, 0, 0.6);
       padding: 4px 12px;
       border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.1);
-      pointer-events: auto; /* Makes the footer itself hoverable */
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: auto;
     }
-    .credit-box:hover { opacity: 1; border-color: var(--neon-blue); }
-    
+
+    .credit-box:hover {
+      opacity: 1;
+      border-color: var(--neon-blue);
+    }
+
     .credit-name {
       font-size: 0.7rem;
       letter-spacing: 2px;
       text-transform: uppercase;
       color: #fff;
     }
+
     .credit-role {
       font-size: 0.6rem;
       color: var(--neon-blue);
       margin-top: 1px;
     }
-
-  
-
   </style>
 
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script> 
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/rmcs.js?v=2"></script>
 </head>
-<body>
 
+<body>
   <div class="centered-bg">
-    
     <!-- Logo / Title -->
     <div class="logo-block">
-      <h1 class="font-cyber text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 drop-shadow-[0_0_10px_rgba(0,243,255,0.5)]">
+      <h1
+        class="font-cyber text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 drop-shadow-[0_0_10px_rgba(0,243,255,0.5)]"
+      >
         RMCS
       </h1>
-      <p class="text-neon-blue tracking-[0.5em] text-sm font-bold mt-2 uppercase">Protocol: 2448</p>
-        <!-- Home Button -->
-      <a href="index.html" class="absolute top-4 left-4 flex items-center gap-2 text-gray-400 hover:text-neon-blue transition group no-underline">
-        <span class="text-xl group-hover:-translate-x-1 transition-transform">«</span>
-        <span class="font-cyber text-xs tracking-widest uppercase border border-transparent group-hover:border-neon-blue px-2 py-1 rounded group-hover:bg-neon-blue/10">Home Base</span>
-      </a>
+      <p
+        class="text-neon-blue tracking-[0.5em] text-sm font-bold mt-2 uppercase"
+      >
+        Protocol: 2448
+      </p>
 
+      <!-- Home Button -->
+      <a
+        href="index.html"
+        class="absolute top-4 left-4 flex items-center gap-2 text-gray-400 hover:text-neon-blue transition group no-underline"
+      >
+        <span
+          class="text-xl group-hover:-translate-x-1 transition-transform"
+          >«</span
+        >
+        <span
+          class="font-cyber text-xs tracking-widest uppercase border border-transparent group-hover:border-neon-blue px-2 py-1 rounded group-hover:bg-neon-blue/10"
+        >
+          Home Base
+        </span>
+      </a>
     </div>
 
     <div id="screens" class="w-full flex justify-center px-4">
-      
       <!-- 1. Main Menu -->
       <div id="mainMenu" class="menu-screen active-screen">
         <button class="cyber-btn w-full create-btn">Initialize Room</button>
-        <button class="cyber-btn w-full secondary join-btn">Join Network</button>
-        <button id="openStoreBtn" class="cyber-btn w-full" style="border-color: #FFD700; color: #FFD700;">Access Store</button>
-      
+        <button class="cyber-btn w-full secondary join-btn">
+          Join Network
+        </button>
+        <button
+          id="openStoreBtn"
+          class="cyber-btn w-full"
+          style="border-color: #ffd700; color: #ffd700"
+        >
+          Access Store
+        </button>
+
         <!-- PUBLIC LOBBY BROWSER -->
         <div class="mt-6 border-t border-gray-800 pt-4">
-          <h3 class="font-cyber text-xs tracking-[0.25em] uppercase text-gray-400 mb-2">
+          <h3
+            class="font-cyber text-xs tracking-[0.25em] uppercase text-gray-400 mb-2"
+          >
             Active Public Rooms
           </h3>
-          <div id="publicLobbiesList"
-               class="max-h-48 overflow-y-auto space-y-2 text-[11px] font-mono text-gray-300">
-            <div class="text-gray-500 italic">
-              Scanning network…
-            </div>
+          <div
+            id="publicLobbiesList"
+            class="max-h-48 overflow-y-auto space-y-2 text-[11px] font-mono text-gray-300"
+          >
+            <div class="text-gray-500 italic">Scanning network…</div>
           </div>
         </div>
       </div>
 
-
       <!-- 2. Create Room -->
       <div id="createScreen" class="menu-screen">
-        <h2 class="font-cyber text-2xl text-neon-blue mb-4 uppercase border-b border-gray-800 pb-2">System Setup</h2>
-        <input type="text" id="createPlayerName" class="input-field mb-4" placeholder="ENTER AGENT ALIAS">
-        <input type="text" id="createRoomCode" class="input-field uppercase" maxlength="8" placeholder="SECURE CODE (OPTIONAL)">
-        <div id="createRoomError" class="text-red-500 text-sm mt-2 font-bold"></div>
+        <h2
+          class="font-cyber text-2xl text-neon-blue mb-4 uppercase border-b border-gray-800 pb-2"
+        >
+          System Setup
+        </h2>
+
+        <input
+          type="text"
+          id="createPlayerName"
+          class="input-field mb-4"
+          placeholder="ENTER AGENT ALIAS"
+        />
+        <input
+          type="text"
+          id="createRoomCode"
+          class="input-field uppercase"
+          maxlength="8"
+          placeholder="SECURE CODE (OPTIONAL)"
+        />
+
+        <div
+          id="createRoomError"
+          class="text-red-500 text-sm mt-2 font-bold"
+        ></div>
+
         <!-- Room visibility & waiting room options -->
         <div class="mt-6 space-y-3 text-xs text-gray-300">
-          <div class="font-cyber tracking-widest uppercase text-gray-400">
+          <div
+            class="font-cyber tracking-widest uppercase text-gray-400"
+          >
             Room Visibility
           </div>
           <div class="flex flex-col gap-2">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="roomVisibility" value="public" checked>
+              <input
+                type="radio"
+                name="roomVisibility"
+                value="public"
+                checked
+              />
               <span>Public &mdash; Visible in lobby browser</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="roomVisibility" value="personal">
+              <input
+                type="radio"
+                name="roomVisibility"
+                value="personal"
+              />
               <span>Personal &mdash; Join via code / link only</span>
             </label>
           </div>
-        
+
           <label class="flex items-center gap-2 cursor-pointer mt-2">
-            <input type="checkbox" id="requireApprovalCheckbox" checked>
+            <input
+              type="checkbox"
+              id="requireApprovalCheckbox"
+              checked
+            />
             <span>Enable waiting room (host must approve joins)</span>
           </label>
         </div>
+
         <div class="mt-8 flex flex-col gap-3">
           <button id="createRoomFinal" class="cyber-btn">Deploy</button>
           <button class="cyber-btn danger back-btn">Abort</button>
@@ -556,57 +652,120 @@
 
       <!-- 3. Join Room -->
       <div id="joinScreen" class="menu-screen">
-        <h2 class="font-cyber text-2xl text-neon-pink mb-4 uppercase border-b border-gray-800 pb-2">Access Terminal</h2>
-        <input type="text" id="joinPlayerName" class="input-field mb-4" placeholder="ENTER AGENT ALIAS">
-        <input type="text" id="joinRoomCode" class="input-field uppercase" maxlength="8" placeholder="ACCESS CODE">
-        <div id="joinRoomError" class="text-red-500 text-sm mt-2 font-bold"></div>
+        <h2
+          class="font-cyber text-2xl text-neon-pink mb-4 uppercase border-b border-gray-800 pb-2"
+        >
+          Access Terminal
+        </h2>
+
+        <input
+          type="text"
+          id="joinPlayerName"
+          class="input-field mb-4"
+          placeholder="ENTER AGENT ALIAS"
+        />
+        <input
+          type="text"
+          id="joinRoomCode"
+          class="input-field uppercase"
+          maxlength="8"
+          placeholder="ACCESS CODE"
+        />
+
+        <div
+          id="joinRoomError"
+          class="text-red-500 text-sm mt-2 font-bold"
+        ></div>
+
         <div class="mt-8 flex flex-col gap-3">
-          <button id="joinRoomFinal" class="cyber-btn secondary">Connect</button>
+          <button id="joinRoomFinal" class="cyber-btn secondary">
+            Connect
+          </button>
           <button class="cyber-btn danger back-btn">Abort</button>
         </div>
       </div>
+
       <!-- 5. Store Screen -->
-      <div id="storeScreen" class="menu-screen" style="max-width: 800px;">
-        
+      <div id="storeScreen" class="menu-screen" style="max-width: 800px">
         <!-- Header -->
-        <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-3">
-           <h2 class="font-cyber text-2xl text-neon-blue uppercase">Black Market</h2>
-           <div class="flex items-center gap-2 bg-black/50 px-3 py-1 rounded border border-yellow-500/30">
-             <span class="text-yellow-400 text-xl">💰</span>
-             <span id="userCoins" class="font-mono text-white text-lg font-bold">0</span>
-           </div>
+        <div
+          class="flex justify-between items-center mb-6 border-b border-gray-800 pb-3"
+        >
+          <h2 class="font-cyber text-2xl text-neon-blue uppercase">
+            Black Market
+          </h2>
+          <div
+            class="flex items-center gap-2 bg-black/50 px-3 py-1 rounded border border-yellow-500/30"
+          >
+            <span class="text-yellow-400 text-xl">💰</span>
+            <span
+              id="userCoins"
+              class="font-mono text-white text-lg font-bold"
+              >0</span
+            >
+          </div>
         </div>
 
         <!-- Tabs -->
         <div class="flex gap-4 mb-6 overflow-x-auto">
-          <button class="store-tab active-tab text-sm font-bold uppercase tracking-widest text-white border-b-2 border-neon-blue pb-1" onclick="filterStore('avatars')">Avatars</button>
-          <button class="store-tab text-sm font-bold uppercase tracking-widest text-gray-500 hover:text-white border-b-2 border-transparent hover:border-gray-500 pb-1" onclick="filterStore('colors')">Name Colors</button>
-          <button class="store-tab text-sm font-bold uppercase tracking-widest text-gray-500 hover:text-white border-b-2 border-transparent hover:border-gray-500 pb-1" onclick="filterStore('sounds')">Sound Packs</button>
+          <button
+            class="store-tab active-tab text-sm font-bold uppercase tracking-widest text-white border-b-2 border-neon-blue pb-1"
+            onclick="filterStore('avatars')"
+          >
+            Avatars
+          </button>
+          <button
+            class="store-tab text-sm font-bold uppercase tracking-widest text-gray-500 hover:text-white border-b-2 border-transparent hover:border-gray-500 pb-1"
+            onclick="filterStore('colors')"
+          >
+            Name Colors
+          </button>
+          <button
+            class="store-tab text-sm font-bold uppercase tracking-widest text-gray-500 hover:text-white border-b-2 border-transparent hover:border-gray-500 pb-1"
+            onclick="filterStore('sounds')"
+          >
+            Sound Packs
+          </button>
         </div>
 
         <!-- Items Grid -->
-        <div id="storeGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-           <!-- Items injected by JS -->
+        <div
+          id="storeGrid"
+          class="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar"
+        >
+          <!-- Items injected by JS -->
         </div>
 
         <div class="mt-6">
-          <button class="cyber-btn danger back-btn w-full">Return to Base</button>
+          <button class="cyber-btn danger back-btn w-full">
+            Return to Base
+          </button>
         </div>
       </div>
 
       <!-- 4. Game Screen (Lobby & Play) -->
-      <!-- 4. Game Screen (Lobby & Play) -->
-      <div id="gameScreen" class="menu-screen" style="width: 92vw; max-width: 1600px;">
-      
+      <div
+        id="gameScreen"
+        class="menu-screen"
+        style="width: 92vw; max-width: 1600px"
+      >
         <!-- Header Bar + Room Code -->
         <div class="mb-4 border-b border-gray-800 pb-3">
-          <div class="flex items-center justify-between gap-4 mb-3">
+          <div
+            class="flex items-center justify-between gap-4 mb-3"
+          >
             <!-- LEFT: LIVE FEED -->
             <div class="flex items-center gap-3">
-              <div class="w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#0f0] animate-pulse"></div>
-              <h2 class="font-cyber text-xl text-white tracking-widest">LIVE FEED</h2>
+              <div
+                class="w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#0f0] animate-pulse"
+              ></div>
+              <h2
+                class="font-cyber text-xl text-white tracking-widest"
+              >
+                LIVE FEED
+              </h2>
             </div>
-      
+
             <!-- RIGHT: DISCONNECT -->
             <button
               id="exitLobbyBtn"
@@ -615,19 +774,28 @@
               DISCONNECT
             </button>
           </div>
-      
-          <!-- CENTER: ROOM CODE + BUTTONS on the same band -->
+
+          <!-- CENTER: ROOM CODE + BUTTONS -->
           <div class="flex justify-center">
-            <div class="room-code-display w-full max-w-2xl flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-      
+            <div
+              class="room-code-display w-full max-w-2xl flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+            >
               <!-- Room code text -->
               <div class="flex items-center gap-3">
-                <span class="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-mono">ROOM</span>
-                <div id="currentRoomCode" class="text-lg tracking-[0.35em]"></div>
+                <span
+                  class="text-[10px] uppercase tracking-[0.3em] text-gray-400 font-mono"
+                  >ROOM</span
+                >
+                <div
+                  id="currentRoomCode"
+                  class="text-lg tracking-[0.35em]"
+                ></div>
               </div>
-      
+
               <!-- Buttons + player counts -->
-              <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
+              <div
+                class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"
+              >
                 <div class="flex gap-2 justify-center">
                   <button
                     id="copyCodeBtn"
@@ -642,215 +810,419 @@
                     COPY INVITE LINK
                   </button>
                 </div>
-                <div class="text-[11px] text-gray-400 font-mono text-center md:text-right">
+                <div
+                  class="text-[11px] text-gray-400 font-mono text-center md:text-right"
+                >
                   Players:
                   <span id="roomPlayerCount">1</span> /
                   <span id="roomMaxPlayers">8</span>
-                  &nbsp;·&nbsp;
-                  Min to start:
+                  &nbsp;·&nbsp; Min to start:
                   <span id="roomMinPlayers">4</span>
                 </div>
               </div>
-      
             </div>
           </div>
         </div>
-      
-        <!-- Main Layout: Terminal + Table + Right Column -->
+
         <!-- Main Layout: Terminal + Table + Right Column -->
         <div class="w-full flex flex-col lg:flex-row gap-6">
-        
-          <!-- LEFT: Terminal / GM + SCOREBOARD (bottom left) -->
-          <div class="w-full lg:w-80 xl:w-96 flex flex-col gap-4 order-3 lg:order-1">
-        
-            <!-- Terminal -->
-            <div id="terminalPanel"
-                 class="p-4 rounded-lg bg-black/40 border border-gray-800 flex flex-col">
-              <h3 class="font-cyber text-neon-blue text-sm mb-3 tracking-widest border-b border-gray-800 pb-2">
-                TERMINAL // AI GAME MASTER
-              </h3>
-        
-              <div id="terminalLog"
-                   class="flex-1 min-h-[160px] max-h-[260px] overflow-y-auto custom-terminal-scroll text-[11px] font-mono space-y-1">
-              </div>
-        
-              <!-- HOST‑ONLY JOIN REQUESTS -->
-              <div id="joinRequestsPanel"
-                   class="mt-4 space-y-2 text-[11px] font-mono text-gray-300 hidden">
-              </div>
+          <!-- LEFT: Terminal / GM + JOIN REQUESTS -->
+          <div
+            id="terminalPanel"
+            class="w-full lg:w-[22rem] xl:w-[26rem] p-4 rounded-lg bg-black/40 border border-gray-800 order-3 lg:order-1 flex flex-col"
+          >
+            <h3
+              class="font-cyber text-neon-blue text-sm mb-3 tracking-widest border-b border-gray-800 pb-2"
+            >
+              TERMINAL // AI GAME MASTER
+            </h3>
+
+            <!-- Scrollable log (taller & wider) -->
+            <div
+              id="terminalLog"
+              class="flex-1 min-h-[220px] max-h-[360px] overflow-y-auto text-[11px] font-mono space-y-1"
+            >
+              <!-- Messages injected by JS -->
             </div>
-        
-            <!-- Scoreboard (BOTTOM‑LEFT, like old version) -->
-            <div id="scoreboard" class="p-4 rounded-lg shadow-lg">
-              <h3 class="font-cyber text-neon-green text-sm mb-3 tracking-widest border-b border-gray-800 pb-2">
-                LEADERBOARD
-              </h3>
-              <div id="scoreList"
-                   class="space-y-2 text-sm font-mono text-gray-400 max-h-48 overflow-y-auto custom-scrollbar">
-                <div class="text-center italic opacity-50">Scanning for data...</div>
-              </div>
-              <button id="openHistoryBtn"
-                      class="w-full mt-4 text-xs font-cyber text-neon-blue border border-neon-blue px-3 py-2 rounded hover:bg-neon-blue hover:text-black transition uppercase tracking-widest">
-                VIEW MISSION LOG
-              </button>
+
+            <!-- HOST‑ONLY JOIN REQUESTS, rendered by JS -->
+            <div
+              id="joinRequestsPanel"
+              class="mt-4 space-y-2 text-[11px] font-mono text-gray-300 hidden"
+            >
+              <!-- Filled by JS -->
             </div>
           </div>
-        
+
           <!-- CENTER: Hologram Table + host controls -->
-          <div class="flex-1 w-full relative order-1 lg:order-2 flex flex-col items-center">
+          <div
+            class="flex-1 w-full relative order-1 lg:order-2 flex flex-col items-center"
+          >
             <div class="game-table">
               <div class="table"></div>
               <div id="gameContent" class="p-6 text-center"></div>
             </div>
-        
-            <div class="mt-4 w-full max-w-xs z-20 flex flex-col gap-3">
-              <button id="startGameBtn" class="cyber-btn w-full shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+
+            <!-- Host Controls -->
+            <div
+              class="mt-4 w-full max-w-xs z-20 flex flex-col gap-3"
+            >
+              <button
+                id="startGameBtn"
+                class="cyber-btn w-full shadow-[0_0_20px_rgba(0,243,255,0.3)]"
+              >
                 INITIATE SEQUENCE
               </button>
-              <button id="cancelRoomBtn"
-                      class="text-xs text-red-600 hover:text-red-400 tracking-widest uppercase font-bold py-2 hidden mt-14">
+              <button
+                id="cancelRoomBtn"
+                class="text-xs text-red-600 hover:text-red-400 tracking-widest uppercase font-bold py-2 hidden mt-14"
+              >
                 [ TERMINATE SESSION ]
               </button>
             </div>
           </div>
-        
-          <!-- RIGHT: Connected Operatives ONLY -->
-          <div class="w-full lg:w-64 order-2 lg:order-3">
-            <div class="border-t lg:border-t-0 lg:border-l border-gray-800 pt-4 lg:pt-0 lg:pl-4">
-              <h3 class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-3">
+
+          <!-- RIGHT: Scoreboard + Connected Operatives -->
+          <div
+            class="w-full lg:w-64 flex flex-col gap-4 order-2 lg:order-3"
+          >
+            <!-- Scoreboard -->
+            <div id="scoreboard" class="p-4 rounded-lg shadow-lg">
+              <h3
+                class="font-cyber text-neon-green text-sm mb-3 tracking-widest border-b border-gray-800 pb-2"
+              >
+                LEADERBOARD
+              </h3>
+              <div
+                id="scoreList"
+                class="space-y-2 text-sm font-mono text-gray-400 max-h-48 overflow-y-auto custom-scrollbar"
+              >
+                <div class="text-center italic opacity-50">
+                  Scanning for data...
+                </div>
+              </div>
+              <button
+                id="openHistoryBtn"
+                class="w-full mt-4 text-xs font-cyber text-neon-blue border border-neon-blue px-3 py-2 rounded hover:bg-neon-blue hover:text-black transition uppercase tracking-widest"
+              >
+                VIEW MISSION LOG
+              </button>
+            </div>
+
+            <!-- Connected Operatives (players list) -->
+            <div class="mt-2 border-t border-gray-800 pt-3">
+              <h3
+                class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-3"
+              >
                 Connected Operatives
               </h3>
-              <div id="playersList" class="flex flex-wrap gap-3"></div>
+              <div
+                id="playersList"
+                class="flex flex-wrap gap-3"
+              ></div>
             </div>
           </div>
-        
-        </div> <!-- /Main Layout -->
-
-      
-      </div><!-- /#gameScreen -->
+        </div>
+      </div>
+      <!-- /#gameScreen -->
+    </div>
+  </div>
 
   <!-- History Modal -->
-  <div id="historyModal" class="fixed inset-0 hidden z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm">
-    <div class="bg-[#0a0a15] border border-neon-blue w-full max-w-3xl max-h-[80vh] rounded-xl flex flex-col shadow-[0_0_40px_rgba(0,243,255,0.2)] relative">
-      
+  <div
+    id="historyModal"
+    class="fixed inset-0 hidden z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+  >
+    <div
+      class="bg-[#0a0a15] border border-neon-blue w-full max-w-3xl max-h-[80vh] rounded-xl flex flex-col shadow-[0_0_40px_rgba(0,243,255,0.2)] relative"
+    >
       <!-- Header -->
-      <div class="flex justify-between items-center p-4 border-b border-gray-800">
-        <h3 class="font-cyber text-xl text-white tracking-widest">MISSION LOG ARCHIVE</h3>
-        <button id="closeHistoryBtn" class="text-gray-400 hover:text-white text-3xl leading-none">&times;</button>
-      </div>
-      
-      <!-- Content -->
-      <div id="historyContent" class="p-4 overflow-y-auto custom-scrollbar flex-1">
-        <!-- Table injected by JS -->
+      <div
+        class="flex justify-between items-center p-4 border-b border-gray-800"
+      >
+        <h3
+          class="font-cyber text-xl text-white tracking-widest"
+        >
+          MISSION LOG ARCHIVE
+        </h3>
+        <button
+          id="closeHistoryBtn"
+          class="text-gray-400 hover:text-white text-3xl leading-none"
+        >
+          &times;
+        </button>
       </div>
 
+      <!-- Content -->
+      <div
+        id="historyContent"
+        class="p-4 overflow-y-auto custom-scrollbar flex-1"
+      >
+        <!-- Table injected by JS -->
+      </div>
     </div>
   </div>
 
   <!-- Custom Message Modal -->
-  <div id="messageBox" class="fixed inset-0 hidden z-50 flex items-center justify-center">
-    <div id="messageBoxContent" class="p-8 max-w-sm w-full text-center relative overflow-hidden">
-      <h3 id="messageBoxTitle" class="font-cyber text-2xl text-neon-blue mb-4">ALERT</h3>
-      <p id="messageBoxBody" class="text-gray-300 mb-8 font-mono text-sm leading-relaxed">System notification.</p>
-      <button id="messageBoxClose" class="cyber-btn w-full">ACKNOWLEDGE</button>
+  <div
+    id="messageBox"
+    class="fixed inset-0 hidden z-50 flex items-center justify-center"
+  >
+    <div
+      id="messageBoxContent"
+      class="p-8 max-w-sm w-full text-center relative overflow-hidden"
+    >
+      <h3
+        id="messageBoxTitle"
+        class="font-cyber text-2xl text-neon-blue mb-4"
+      >
+        ALERT
+      </h3>
+      <p
+        id="messageBoxBody"
+        class="text-gray-300 mb-8 font-mono text-sm leading-relaxed"
+      >
+        System notification.
+      </p>
+      <button id="messageBoxClose" class="cyber-btn w-full">
+        ACKNOWLEDGE
+      </button>
     </div>
   </div>
 
-    <!-- Round Transition Overlay -->
-  <div id="roundTransition" class="fixed inset-0 z-[999] hidden flex-col items-center justify-center bg-black pointer-events-none">
-    <div class="text-neon-blue font-cyber text-6xl md:text-8xl font-black tracking-[0.2em] drop-shadow-[0_0_30px_rgba(0,243,255,0.8)] animate-pulse" id="roundTitle">
+  <!-- Round Transition Overlay -->
+  <div
+    id="roundTransition"
+    class="fixed inset-0 z-[999] hidden flex-col items-center justify-center bg-black pointer-events-none"
+  >
+    <div
+      id="roundTitle"
+      class="text-neon-blue font-cyber text-6xl md:text-8xl font-black tracking-[0.2em] drop-shadow-[0_0_30px_rgba(0,243,255,0.8)] animate-pulse"
+    >
       ROUND 1
     </div>
-    <div class="mt-4 h-1 w-64 bg-gray-800 rounded overflow-hidden">
-       <div class="h-full bg-neon-green animate-[loadingBar_2s_ease-in-out_infinite]"></div>
+    <div
+      class="mt-4 h-1 w-64 bg-gray-800 rounded overflow-hidden"
+    >
+      <div
+        class="h-full bg-neon-green animate-[loadingBar_2s_ease-in-out_infinite]"
+      ></div>
     </div>
   </div>
+
   <!-- FEEDBACK MODAL -->
-  <div id="feedbackModal" class="fixed inset-0 hidden z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-4">
-    <div class="bg-[#0a0a15] border-2 border-neon-pink w-full max-w-md rounded-xl flex flex-col shadow-[0_0_50px_rgba(188,19,254,0.3)] relative animate-[cyberFadeIn_0.4s_ease-out]">
-      
+  <div
+    id="feedbackModal"
+    class="fixed inset-0 hidden z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-4"
+  >
+    <div
+      class="bg-[#0a0a15] border-2 border-neon-pink w-full max-w-md rounded-xl flex flex-col shadow-[0_0_50px_rgba(188,19,254,0.3)] relative animate-[cyberFadeIn_0.4s_ease-out]"
+    >
       <div class="p-6 border-b border-gray-800">
-        <h3 class="font-cyber text-2xl text-white tracking-widest text-center">MISSION DEBRIEF</h3>
-        <p class="text-center text-gray-400 text-xs mt-1 font-mono">PROTOCOL 2448: FEEDBACK REQUIRED</p>
+        <h3
+          class="font-cyber text-2xl text-white tracking-widest text-center"
+        >
+          MISSION DEBRIEF
+        </h3>
+        <p
+          class="text-center text-gray-400 text-xs mt-1 font-mono"
+        >
+          PROTOCOL 2448: FEEDBACK REQUIRED
+        </p>
       </div>
 
-      <div class="p-6 space-y-6 overflow-y-auto max-h-[60vh]">
-        
+      <div
+        class="p-6 space-y-6 overflow-y-auto max-h-[60vh]"
+      >
         <!-- Name Field -->
         <div>
-          <label class="block text-neon-blue text-xs font-bold mb-2 tracking-widest">OPERATIVE NAME</label>
-          <input type="text" id="feedbackName" class="w-full bg-black/50 border border-gray-700 text-white p-2 rounded focus:border-neon-pink focus:outline-none font-mono" placeholder="Identify Yourself">
+          <label
+            class="block text-neon-blue text-xs font-bold mb-2 tracking-widest"
+            >OPERATIVE NAME</label
+          >
+          <input
+            type="text"
+            id="feedbackName"
+            class="w-full bg-black/50 border border-gray-700 text-white p-2 rounded focus:border-neon-pink focus:outline-none font-mono"
+            placeholder="Identify Yourself"
+          />
         </div>
 
         <!-- Rating 1: Game Functionality -->
         <div>
-          <label class="block text-gray-400 text-xs font-bold mb-1 tracking-widest">SYSTEM FUNCTIONALITY</label>
+          <label
+            class="block text-gray-400 text-xs font-bold mb-1 tracking-widest"
+            >SYSTEM FUNCTIONALITY</label
+          >
           <div class="star-rating" id="ratingFunc">
-            <!-- Note: Order is 5 down to 1 for CSS logic -->
-            <input type="radio" name="func" id="func-5" value="5"><label for="func-5">★</label>
-            <input type="radio" name="func" id="func-4" value="4"><label for="func-4">★</label>
-            <input type="radio" name="func" id="func-3" value="3"><label for="func-3">★</label>
-            <input type="radio" name="func" id="func-2" value="2"><label for="func-2">★</label>
-            <input type="radio" name="func" id="func-1" value="1"><label for="func-1">★</label>
+            <input
+              type="radio"
+              name="func"
+              id="func-5"
+              value="5"
+            /><label for="func-5">★</label>
+            <input
+              type="radio"
+              name="func"
+              id="func-4"
+              value="4"
+            /><label for="func-4">★</label>
+            <input
+              type="radio"
+              name="func"
+              id="func-3"
+              value="3"
+            /><label for="func-3">★</label>
+            <input
+              type="radio"
+              name="func"
+              id="func-2"
+              value="2"
+            /><label for="func-2">★</label>
+            <input
+              type="radio"
+              name="func"
+              id="func-1"
+              value="1"
+            /><label for="func-1">★</label>
           </div>
         </div>
 
         <!-- Rating 2: Overall Game -->
         <div>
-          <label class="block text-gray-400 text-xs font-bold mb-1 tracking-widest">OVERALL EXPERIENCE</label>
+          <label
+            class="block text-gray-400 text-xs font-bold mb-1 tracking-widest"
+            >OVERALL EXPERIENCE</label
+          >
           <div class="star-rating" id="ratingOverall">
-            <input type="radio" name="over" id="over-5" value="5"><label for="over-5">★</label>
-            <input type="radio" name="over" id="over-4" value="4"><label for="over-4">★</label>
-            <input type="radio" name="over" id="over-3" value="3"><label for="over-3">★</label>
-            <input type="radio" name="over" id="over-2" value="2"><label for="over-2">★</label>
-            <input type="radio" name="over" id="over-1" value="1"><label for="over-1">★</label>
+            <input
+              type="radio"
+              name="over"
+              id="over-5"
+              value="5"
+            /><label for="over-5">★</label>
+            <input
+              type="radio"
+              name="over"
+              id="over-4"
+              value="4"
+            /><label for="over-4">★</label>
+            <input
+              type="radio"
+              name="over"
+              id="over-3"
+              value="3"
+            /><label for="over-3">★</label>
+            <input
+              type="radio"
+              name="over"
+              id="over-2"
+              value="2"
+            /><label for="over-2">★</label>
+            <input
+              type="radio"
+              name="over"
+              id="over-1"
+              value="1"
+            /><label for="over-1">★</label>
           </div>
         </div>
 
         <!-- Rating 3: GUI -->
         <div>
-          <label class="block text-gray-400 text-xs font-bold mb-1 tracking-widest">VISUAL INTERFACE (GUI)</label>
+          <label
+            class="block text-gray-400 text-xs font-bold mb-1 tracking-widest"
+            >VISUAL INTERFACE (GUI)</label
+          >
           <div class="star-rating" id="ratingGui">
-            <input type="radio" name="gui" id="gui-5" value="5"><label for="gui-5">★</label>
-            <input type="radio" name="gui" id="gui-4" value="4"><label for="gui-4">★</label>
-            <input type="radio" name="gui" id="gui-3" value="3"><label for="gui-3">★</label>
-            <input type="radio" name="gui" id="gui-2" value="2"><label for="gui-2">★</label>
-            <input type="radio" name="gui" id="gui-1" value="1"><label for="gui-1">★</label>
+            <input
+              type="radio"
+              name="gui"
+              id="gui-5"
+              value="5"
+            /><label for="gui-5">★</label>
+            <input
+              type="radio"
+              name="gui"
+              id="gui-4"
+              value="4"
+            /><label for="gui-4">★</label>
+            <input
+              type="radio"
+              name="gui"
+              id="gui-3"
+              value="3"
+            /><label for="gui-3">★</label>
+            <input
+              type="radio"
+              name="gui"
+              id="gui-2"
+              value="2"
+            /><label for="gui-2">★</label>
+            <input
+              type="radio"
+              name="gui"
+              id="gui-1"
+              value="1"
+            /><label for="gui-1">★</label>
           </div>
         </div>
 
         <!-- Suggestion Box -->
         <div>
-          <label class="block text-neon-blue text-xs font-bold mb-2 tracking-widest">TACTICAL SUGGESTIONS</label>
-          <textarea id="feedbackText" rows="3" class="w-full bg-black/50 border border-gray-700 text-white p-2 rounded focus:border-neon-pink focus:outline-none font-mono text-sm" placeholder="Enter feedback parameters..."></textarea>
+          <label
+            class="block text-neon-blue text-xs font-bold mb-2 tracking-widest"
+            >TACTICAL SUGGESTIONS</label
+          >
+          <textarea
+            id="feedbackText"
+            rows="3"
+            class="w-full bg-black/50 border border-gray-700 text-white p-2 rounded focus:border-neon-pink focus:outline-none font-mono text-sm"
+            placeholder="Enter feedback parameters..."
+          ></textarea>
         </div>
-
       </div>
 
       <div class="p-6 border-t border-gray-800 flex gap-3">
-        <button id="submitFeedbackBtn" class="cyber-btn w-full secondary text-sm py-3">TRANSMIT DATA</button>
-        <button id="skipFeedbackBtn" class="text-gray-500 hover:text-white text-xs font-bold px-4">SKIP</button>
+        <button
+          id="submitFeedbackBtn"
+          class="cyber-btn w-full secondary text-sm py-3"
+        >
+          TRANSMIT DATA
+        </button>
+        <button
+          id="skipFeedbackBtn"
+          class="text-gray-500 hover:text-white text-xs font-bold px-4"
+        >
+          SKIP
+        </button>
       </div>
-
     </div>
   </div>
-  
+
+  <!-- Footer -->
   <footer class="gn-footer">
     <div class="gn-footer-inner">
       <!-- Line 1: Studio credit -->
       <div class="gn-footer-row gn-footer-brand">
         <span class="gn-footer-title">Game Nexus Studios</span>
         <span class="gn-footer-separator">•</span>
-        <span class="gn-footer-sub">Architected by Sahil · Full Stack Developer</span>
+        <span class="gn-footer-sub">
+          Architected by Sahil · Full Stack Developer
+        </span>
       </div>
-  
+
       <!-- Line 2: Policy links -->
       <div class="gn-footer-row gn-footer-links">
-        <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+        <a href="privacy.html" target="_blank" rel="noopener">
+          Privacy Policy
+        </a>
         <span class="gn-footer-separator">•</span>
-        <a href="tos.html" target="_blank" rel="noopener">Terms of Service</a>
+        <a href="tos.html" target="_blank" rel="noopener">
+          Terms of Service
+        </a>
       </div>
-  
+
       <!-- Line 3: Rating -->
       <div class="gn-footer-row gn-footer-rating">
         <span>Game Nexus</span>
@@ -859,6 +1231,5 @@
       </div>
     </div>
   </footer>
-
 </body>
 </html>
