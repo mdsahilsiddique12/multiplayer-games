@@ -1661,34 +1661,101 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- 12. HISTORY MODAL & GLOBAL LEADERBOARD ---
+  // --- 12. HISTORY MODAL & GLOBAL LEADERBOARD ---
+  
+  // Open history modal: show ROOM HISTORY + button to toggle GLOBAL RANKING
   if (openHistoryBtn && historyModal && historyContent) {
     openHistoryBtn.onclick = () => {
       if (!roomId) {
         alert("No active room log.");
         return;
       }
+  
       historyModal.classList.remove("hidden");
       historyModal.classList.add("flex");
-      historyContent.innerHTML =
-        '<div class="text-gray-400 text-sm font-mono">Loading mission log & leaderboard...</div>';
-      loadHistoryAndLeaderboard(roomId);
+  
+      // Base layout inside modal
+      historyContent.innerHTML = `
+        <div id="roomHistoryWrapper" class="mb-6 text-xs text-gray-200">
+          <div class="text-gray-400 text-sm font-mono">
+            Loading mission history...
+          </div>
+        </div>
+  
+        <div class="flex justify-center mb-4">
+          <button
+            id="showGlobalBtn"
+            class="px-4 py-2 text-[10px] font-cyber uppercase tracking-[0.2em]
+                   border border-neon-blue rounded hover:bg-neon-blue/10 transition">
+            VIEW GLOBAL RANKING
+          </button>
+        </div>
+  
+        <div id="globalRankingWrapper"
+             class="mt-2 text-xs text-gray-200 hidden">
+          <!-- Filled on demand -->
+        </div>
+      `;
+  
+      // Load only room history by default
+      loadRoomHistory(roomId);
+  
+      // Wire up the "VIEW GLOBAL RANKING" toggle
+      const showGlobalBtn = document.getElementById("showGlobalBtn");
+      const globalWrapper = document.getElementById("globalRankingWrapper");
+  
+      if (showGlobalBtn && globalWrapper) {
+        let globalLoadedOnce = false;
+  
+        showGlobalBtn.onclick = () => {
+          const isHidden = globalWrapper.classList.contains("hidden");
+  
+          if (isHidden) {
+            globalWrapper.classList.remove("hidden");
+            showGlobalBtn.textContent = "HIDE GLOBAL RANKING";
+  
+            if (!globalLoadedOnce) {
+              globalWrapper.innerHTML = `
+                <div class="text-gray-400 text-sm font-mono">
+                  Loading global ranking...
+                </div>`;
+              loadGlobalRanking(globalWrapper);
+              globalLoadedOnce = true;
+            }
+          } else {
+            globalWrapper.classList.add("hidden");
+            showGlobalBtn.textContent = "VIEW GLOBAL RANKING";
+          }
+        };
+      }
     };
   }
+  
+  // Close history modal
   if (closeHistoryBtn && historyModal) {
     closeHistoryBtn.onclick = () => {
       historyModal.classList.add("hidden");
     };
   }
-  async function loadHistoryAndLeaderboard(roomCode) {
+  
+  /**
+   * Load ONLY the room's round history into #roomHistoryWrapper
+   */
+  async function loadRoomHistory(roomCode) {
+    const wrapper = document.getElementById("roomHistoryWrapper");
+    if (!wrapper) return;
+  
     try {
       const roomSnap = await db.collection("rmcs_rooms").doc(roomCode).get();
       const data = roomSnap.data() || {};
       const history = data.history || [];
+  
       let historyHtml = `
         <h4 class="font-cyber text-neon-blue text-sm tracking-widest mb-3">
           ROOM HISTORY
         </h4>
       `;
+  
       if (!history.length) {
         historyHtml += `
           <div class="text-xs text-gray-500 font-mono mb-6">
@@ -1731,16 +1798,34 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
         `;
       }
+  
+      wrapper.innerHTML = historyHtml;
+    } catch (e) {
+      console.error(e);
+      wrapper.innerHTML =
+        '<div class="text-red-400 text-xs font-mono">Failed to load mission log.</div>';
+    }
+  }
+  
+  /**
+   * Load GLOBAL leaderboard (and your season progress) into the given element
+   */
+  async function loadGlobalRanking(targetEl) {
+    if (!targetEl) return;
+  
+    try {
       const usersSnap = await db
         .collection("users")
         .orderBy("xp", "desc")
         .limit(20)
         .get();
+  
       let leaderboardHtml = `
         <h4 class="font-cyber text-neon-green text-sm tracking-widest mb-3">
           GLOBAL RANKING
         </h4>
       `;
+  
       if (usersSnap.empty) {
         leaderboardHtml += `
           <div class="text-xs text-gray-500 font-mono">
@@ -1782,6 +1867,8 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
         `;
       }
+  
+      // Your own season progress
       let myStats = "";
       const me = firebase.auth().currentUser;
       if (me) {
@@ -1801,17 +1888,12 @@ document.addEventListener("DOMContentLoaded", function () {
           `;
         }
       }
-      historyContent.innerHTML = `
-        <div class="text-xs text-gray-200">
-          ${historyHtml}
-          ${leaderboardHtml}
-          ${myStats}
-        </div>
-      `;
+  
+      targetEl.innerHTML = leaderboardHtml + myStats;
     } catch (e) {
       console.error(e);
-      historyContent.innerHTML =
-        '<div class="text-red-400 text-xs font-mono">Failed to load mission log.</div>';
+      targetEl.innerHTML =
+        '<div class="text-red-400 text-xs font-mono">Failed to load global ranking.</div>';
     }
   }
 
