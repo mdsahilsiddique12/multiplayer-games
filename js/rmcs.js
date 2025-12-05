@@ -1248,76 +1248,47 @@ document.addEventListener("DOMContentLoaded", function () {
   function showRoundResult(data, selfId, roomRef, isHost) {
     const res = data.guess;
     if (!res) return;
+  
     const isCorrect = res.correct;
+  
+    // Play sound once per round
     if (!data.scoreUpdated) {
       if (isCorrect) playSound("caught");
       else playSound("escaped");
     }
+  
+    // Host: update scores & history once
     if (isHost && !data.scoreUpdated) {
       const pts = calculateRoundPoints(data.playerRoles, isCorrect);
       const newScores = { ...(data.scores || {}) };
+  
       Object.keys(pts).forEach((uid) => {
         newScores[uid] = (newScores[uid] || 0) + pts[uid];
       });
+  
       const historyEntry = {
         result: isCorrect ? "Caught" : "Escaped",
         timestamp: new Date().toISOString()
       };
+  
       roomRef.update({
         scores: newScores,
         history: firebase.firestore.FieldValue.arrayUnion(historyEntry),
         scoreUpdated: true
       });
+  
       awardProgress(pts, isCorrect);
     }
-    const resultText = isCorrect ? "TARGET NEUTRALIZED" : "MISSION FAILED";
-    const resultColor = isCorrect ? "text-neon-green" : "text-red-500";
-    const resultEmoji = isCorrect ? "🎯" : "🤡";
-    const roleMap = {};
-    data.playerRoles.forEach((p) => (roleMap[p.role] = p.name));
-    gameContent.innerHTML = `
-      <div class="flex flex-col items-center w-full max-w-sm animate-fade-in">
-        <div class="text-6xl mb-2">${resultEmoji}</div>
-        <h2 class="font-cyber text-2xl ${resultColor} mb-6 tracking-widest border-b border-gray-700 pb-2 w-full text-center">
-          ${resultText}
-        </h2>
-        <div class="w-full text-sm space-y-2 font-mono text-left mb-6 bg-black/40 p-4 rounded border border-gray-800">
-          <div class="flex justify-between items-center">
-            <span class="text-yellow-300">👑 RAJA</span>
-            <span class="text-white font-bold">${roleMap["Raja"] || "-"}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-fuchsia-300">🧠 MANTRI</span>
-            <span class="text-white font-bold">${roleMap["Mantri"] || "-"}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-cyan-300">🛡️ SIPAHI</span>
-            <span class="text-white font-bold">${roleMap["Sipahi"] || "-"}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-rose-400">🔪 CHOR</span>
-            <span class="text-white font-bold">${roleMap["Chor"] || "-"}</span>
-          </div>
-        </div>
-        ${
-          isHost
-            ? `<button id="rebootBtn" class="cyber-btn w-full py-3 shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-                 REBOOT SYSTEM
-               </button>`
-            : `<div class="text-xs text-gray-500 animate-pulse">WAITING FOR HOST...</div>`
-        }
-      </div>
-    `;
-    // After you know isCorrect, data, isHost, roomRef and gameContent:
-    
+  
+    // Summary line for terminal
     const summary = isCorrect
       ? `Sipahi correctly identified the Chor. Security protocol successful.`
       : `Chor evaded detection. Security breach recorded.`;
-    
+  
     pushTerminalMessage(summary, isCorrect ? "success" : "warning");
-    
-    // Show overlay content
-    const gameContent = getEl("gameContent");
+  
+    // 🔹 Use the *global* gameContent (DON'T redeclare it)
+    if (!gameContent) return;
     gameContent.style.display = "flex";
     gameContent.innerHTML = `
       <div class="w-full max-w-md mx-auto text-center space-y-4">
@@ -1327,11 +1298,11 @@ document.addEventListener("DOMContentLoaded", function () {
         <p class="font-mono text-sm text-gray-300 leading-relaxed">
           ${summary}
         </p>
-    
+  
         <div class="mt-4 text-xs font-mono text-gray-400">
           Roles have been logged in the mission archive.
         </div>
-    
+  
         <div class="mt-6">
           ${
             isHost
@@ -1346,56 +1317,58 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
       </div>
     `;
-    
-    // If not host, nothing more to do on this client
+  
+    // If not host, stop here
     if (!isHost) return;
-    
-    // === HOST ONLY: wire up the reboot button ===
+  
+    // Host only: wire up REBOOT SYSTEM
     const rebootBtn = getEl("rebootBtn");
-    if (rebootBtn) {
-      rebootBtn.addEventListener("click", async () => {
-        try {
-          rebootBtn.disabled = true;
-          rebootBtn.innerText = "INITIALIZING…";
-    
-          const playerCount = data.playerRoles.length;
-          const baseRoles = ["Raja", "Mantri", "Chor", "Sipahi"];
-          const extraCount = Math.max(0, playerCount - baseRoles.length);
-    
-          // Extra players become Civilians
-          const extraRoles = Array.from({ length: extraCount }, () => "Civilian");
-    
-          // New shuffled roles
-          const roles = [...baseRoles, ...extraRoles].sort(
-            () => Math.random() - 0.5
-          );
-    
-          const newPlayerRoles = data.playerRoles.map((p, i) => ({
-            id: p.id,
-            name: p.name,
-            role: roles[i],
-          }));
-    
-          await roomRef.update({
-            phase: "reveal",       // back to reveal phase
-            playerRoles: newPlayerRoles,
-            revealed: [],
-            guess: null,
-            scoreUpdated: false,
-          });
-    
-          // Optional: hide overlay after update
-          gameContent.style.display = "none";
-        } catch (err) {
-          console.error("Reboot failed:", err);
-          rebootBtn.disabled = false;
-          rebootBtn.innerText = "REBOOT SYSTEM";
-          pushTerminalMessage("Reboot failed. Check console / Firestore rules.", "error");
-        }
-      });
-    } else {
+    if (!rebootBtn) {
       console.warn("Reboot button not found in DOM");
+      return;
     }
+  
+    rebootBtn.addEventListener("click", async () => {
+      try {
+        rebootBtn.disabled = true;
+        rebootBtn.innerText = "INITIALIZING…";
+  
+        const playerCount = data.playerRoles.length;
+        const baseRoles = ["Raja", "Mantri", "Chor", "Sipahi"];
+        const extraCount = Math.max(0, playerCount - baseRoles.length);
+        const extraRoles = Array.from({ length: extraCount }, () => "Civilian");
+        const roles = [...baseRoles, ...extraRoles].sort(
+          () => Math.random() - 0.5
+        );
+  
+        const newPlayerRoles = data.playerRoles.map((p, i) => ({
+          id: p.id,
+          name: p.name,
+          role: roles[i]
+        }));
+  
+        await roomRef.update({
+          phase: "reveal",
+          playerRoles: newPlayerRoles,
+          revealed: [],
+          guess: null,
+          scoreUpdated: false
+        });
+  
+        // Hide overlay if you want
+        gameContent.style.display = "none";
+      } catch (err) {
+        console.error("Reboot failed:", err);
+        rebootBtn.disabled = false;
+        rebootBtn.innerText = "REBOOT SYSTEM";
+        pushTerminalMessage(
+          "Reboot failed. Check console / Firestore rules.",
+          "warning"
+        );
+      }
+    });
+  }
+
 
 
   // --- 10. HOST CONTROL HELPERS (KICK / MUTE) ---
