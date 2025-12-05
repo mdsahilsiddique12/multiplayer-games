@@ -497,6 +497,27 @@
         <input type="text" id="createPlayerName" class="input-field mb-4" placeholder="ENTER AGENT ALIAS">
         <input type="text" id="createRoomCode" class="input-field uppercase" maxlength="8" placeholder="SECURE CODE (OPTIONAL)">
         <div id="createRoomError" class="text-red-500 text-sm mt-2 font-bold"></div>
+        <!-- Room visibility & waiting room options -->
+        <div class="mt-6 space-y-3 text-xs text-gray-300">
+          <div class="font-cyber tracking-widest uppercase text-gray-400">
+            Room Visibility
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="roomVisibility" value="public" checked>
+              <span>Public &mdash; Visible in lobby browser</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="roomVisibility" value="personal">
+              <span>Personal &mdash; Join via code / link only</span>
+            </label>
+          </div>
+        
+          <label class="flex items-center gap-2 cursor-pointer mt-2">
+            <input type="checkbox" id="requireApprovalCheckbox" checked>
+            <span>Enable waiting room (host must approve joins)</span>
+          </label>
+        </div>
         <div class="mt-8 flex flex-col gap-3">
           <button id="createRoomFinal" class="cyber-btn">Deploy</button>
           <button class="cyber-btn danger back-btn">Abort</button>
@@ -620,6 +641,10 @@
             <div id="terminalLog" class="mt-1 space-y-2 text-[11px] text-gray-300 font-mono max-h-64 overflow-y-auto">
               <!-- AI Game Master lines injected by JS -->
             </div>
+          </div>
+          <!-- JOIN REQUESTS (HOST ONLY) -->
+          <div id="joinRequestsPanel" class="mt-4 space-y-2 text-[11px] font-mono text-gray-300 hidden">
+            <!-- Filled by JS when there are pending requests -->
           </div>
 
         
