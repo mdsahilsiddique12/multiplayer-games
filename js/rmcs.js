@@ -4,7 +4,6 @@ document.addEventListener("DOMContentLoaded", function () {
     console.error("Firebase missing");
     return;
   }
-
   const db = firebase.firestore();
   let unsubscribe = null;
   let roomId = "";
@@ -13,15 +12,16 @@ document.addEventListener("DOMContentLoaded", function () {
   const MIN_PLAYERS = 4;
   const MAX_PLAYERS = 8; // you can increase to 10 later
 
+  // NEW: keep track of pending join requests locally (for host)
+  let lastPendingJoins = [];
+
   // --- 2. DOM ELEMENTS ---
   const getEl = (id) => document.getElementById(id);
-
   const mainMenu = getEl("mainMenu");
   const createScreen = getEl("createScreen");
   const joinScreen = getEl("joinScreen");
   const gameScreen = getEl("gameScreen");
   const storeScreen = getEl("storeScreen");
-
   const gameContent = getEl("gameContent");
   const playersListEl = getEl("playersList");
   const currentRoomCode = getEl("currentRoomCode");
@@ -33,30 +33,90 @@ document.addEventListener("DOMContentLoaded", function () {
   const scoreListEl = getEl("scoreList");
   const startGameBtn = getEl("startGameBtn");
   const cancelRoomBtn = getEl("cancelRoomBtn");
-
   const openStoreBtn = getEl("openStoreBtn");
   const userCoinsEl = getEl("userCoins");
   const storeGrid = getEl("storeGrid");
-
   const historyModal = getEl("historyModal");
   const historyContent = getEl("historyContent");
   const openHistoryBtn = getEl("openHistoryBtn");
   const closeHistoryBtn = getEl("closeHistoryBtn");
-  const feedbackModal = getEl('feedbackModal');
-  const submitFeedbackBtn = getEl('submitFeedbackBtn');
-  const skipFeedbackBtn = getEl('skipFeedbackBtn');
-  const feedbackName = getEl('feedbackName');
-  const feedbackText = getEl('feedbackText');
-
+  const feedbackModal = getEl("feedbackModal");
+  const submitFeedbackBtn = getEl("submitFeedbackBtn");
+  const skipFeedbackBtn = getEl("skipFeedbackBtn");
+  const feedbackName = getEl("feedbackName");
+  const feedbackText = getEl("feedbackText");
   const publicLobbiesList = getEl("publicLobbiesList");
+
+  // NEW: create‑room options + host join‑request panel
+  const roomVisibilitySelect = getEl("roomVisibility");      // <select> Public / Personal
+  const waitingRoomToggle = getEl("waitingRoomToggle");      // <input type="checkbox">
+  const joinRequestsPanel = getEl("joinRequestsPanel");      // host’s “Allow / Deny” list
+
   let unsubscribeLobbyList = null;
 
-  
-  const roundTransition = getEl('roundTransition');
-
+  const roundTransition = getEl("roundTransition");
   // --- FEEDBACK STATE ---
   let postFeedbackAction = null;
 
+  // --- DISCONNECT → REMOVE PLAYER FROM ROOM ---
+  async function leaveCurrentRoom() {
+    if (!roomId) return;
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+
+    const uid = user.uid;
+    const roomRef = db.collection("rmcs_rooms").doc(roomId);
+
+    try {
+      const snap = await roomRef.get();
+      if (!snap.exists) return;
+      const data = snap.data();
+
+      const oldPlayers = data.players || [];
+      const newPlayers = oldPlayers.filter((p) => p.id !== uid);
+      const newScores = { ...(data.scores || {}) };
+      delete newScores[uid];
+      const newMuted = (data.muted || []).filter((id) => id !== uid);
+
+      // also drop from pendingJoins if present
+      const oldPending = data.pendingJoins || [];
+      const newPending = oldPending.filter((p) => p.id !== uid);
+
+      // If host leaves, either transfer host or delete room
+      if (uid === data.host) {
+        if (newPlayers.length === 0) {
+          await roomRef.delete();
+          return;
+        } else {
+          await roomRef.update({
+            host: newPlayers[0].id,
+            players: newPlayers,
+            scores: newScores,
+            muted: newMuted,
+            pendingJoins: newPending
+          });
+        }
+      } else {
+        await roomRef.update({
+          players: newPlayers,
+          scores: newScores,
+          muted: newMuted,
+          pendingJoins: newPending
+        });
+      }
+    } catch (e) {
+      console.error("leaveCurrentRoom failed", e);
+    } finally {
+      roomId = "";
+    }
+  }
+
+  // NEW: try to clean up when tab closes / refreshes
+  window.addEventListener("beforeunload", () => {
+    // we don't await here; browser may or may not finish it,
+    // but it's better than nothing.
+    leaveCurrentRoom();
+  });
 
   // Lobby meta labels
   if (roomMaxPlayersEl) roomMaxPlayersEl.textContent = MAX_PLAYERS;
@@ -165,12 +225,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-
   // --- AI GAME MASTER TERMINAL ---
   function pushTerminalMessage(message, tone = "system") {
     const box = document.getElementById("terminalLog");
     if (!box) return;
-
     const now = new Date();
     const hh = now.getHours().toString().padStart(2, "0");
     const mm = now.getMinutes().toString().padStart(2, "0");
@@ -188,16 +246,13 @@ document.addEventListener("DOMContentLoaded", function () {
       <span class="${colorClass} font-bold">GM:</span>
       <span class="text-gray-300 ml-1">${message}</span>
     `;
-
     box.prepend(line); // newest on top
-    // Limit to last 25 entries
     while (box.children.length > 25) {
       box.removeChild(box.lastChild);
     }
   }
 
   // --- 5. IN‑GAME SHOP / BLACK MARKET ---
-
   const STORE_ITEMS = [
     // AVATARS
     {
@@ -274,22 +329,18 @@ document.addEventListener("DOMContentLoaded", function () {
   function renderStore(category = "avatars") {
     if (!storeGrid) return;
     if (!currentUserData) refreshUserCoinsUI();
-
     const filtered = STORE_ITEMS.filter((item) => item.type === category);
-
     if (filtered.length === 0) {
       storeGrid.innerHTML =
         '<div class="text-sm text-gray-400 font-mono">No items in this category yet.</div>';
       return;
     }
-
     storeGrid.innerHTML = filtered
       .map((item) => {
         const owned = ownsItem(item.id);
         const needsVip = item.requiresVip && !userHasVip();
         const canAfford =
           currentUserData && currentUserData.coins >= item.price && !needsVip && !owned;
-
         return `
           <div class="border border-gray-800 rounded-lg bg-black/50 p-3 flex flex-col justify-between text-xs font-mono">
             <div>
@@ -323,8 +374,6 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
       })
       .join("");
-
-    // bind buy buttons
     const buyButtons = storeGrid.querySelectorAll(".buy-item-btn");
     buyButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -353,20 +402,16 @@ document.addEventListener("DOMContentLoaded", function () {
       alert("Insufficient credits.");
       return;
     }
-
     try {
       const uid = await requireAuth();
       const userRef = db.collection("users").doc(uid);
-
       await userRef.update({
         coins: coins - item.price,
         inventory: firebase.firestore.FieldValue.arrayUnion(item.id)
       });
-
       currentUserData.coins = coins - item.price;
       if (!Array.isArray(currentUserData.inventory)) currentUserData.inventory = [];
       currentUserData.inventory.push(item.id);
-
       refreshUserCoinsUI();
       renderStore(item.type);
       playSound("cash");
@@ -395,16 +440,14 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- PUBLIC LOBBY BROWSER ---
   function startLobbyBrowser() {
     if (!publicLobbiesList) return;
-
-    // Clean old listener if any
     if (unsubscribeLobbyList) {
       unsubscribeLobbyList();
       unsubscribeLobbyList = null;
     }
-
-    // You can change filters later (e.g. isPublic === true)
+    // UPDATED: only show PUBLIC lobbies
     const q = db.collection("rmcs_rooms")
-      .where("phase", "==", "lobby");
+      .where("phase", "==", "lobby")
+      .where("visibility", "==", "public"); // NEW filter
 
     unsubscribeLobbyList = q.onSnapshot((snap) => {
       if (snap.empty) {
@@ -414,7 +457,6 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>`;
         return;
       }
-
       const rooms = snap.docs
         .map((doc) => {
           const d = doc.data();
@@ -430,7 +472,6 @@ document.addEventListener("DOMContentLoaded", function () {
           };
         })
         .sort((a, b) => (b.created?.getTime() || 0) - (a.created?.getTime() || 0));
-
       publicLobbiesList.innerHTML = rooms.map((r) => `
         <div class="border border-gray-800 rounded bg-black/40 px-3 py-2 flex items-center justify-between">
           <div>
@@ -452,15 +493,12 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Click on Join button inside public lobby list → prefill Join screen
   if (publicLobbiesList) {
     publicLobbiesList.addEventListener("click", (e) => {
       const btn = e.target.closest(".join-public-btn");
       if (!btn) return;
       const code = btn.getAttribute("data-room-code");
       if (!code) return;
-
-      // Move to Join screen & prefill code
       showScreen(joinScreen);
       const joinCodeInput = getEl("joinRoomCode");
       if (joinCodeInput) joinCodeInput.value = code;
@@ -481,7 +519,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Menu buttons
   document.querySelectorAll(".create-btn").forEach(
     (b) =>
       (b.onclick = () => {
@@ -501,7 +538,6 @@ document.addEventListener("DOMContentLoaded", function () {
       })
   );
 
-  // Store button
   if (openStoreBtn && storeScreen) {
     openStoreBtn.onclick = () => {
       showScreen(storeScreen);
@@ -510,7 +546,6 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  // Copy room code / link
   if (copyCodeBtn) {
     copyCodeBtn.onclick = () => {
       const code = currentRoomCode ? currentRoomCode.innerText.trim() : "";
@@ -521,7 +556,6 @@ document.addEventListener("DOMContentLoaded", function () {
         .catch(() => alert("Copy failed, please copy manually."));
     };
   }
-
   if (copyLinkBtn) {
     copyLinkBtn.onclick = () => {
       const code = currentRoomCode ? currentRoomCode.innerText.trim() : "";
@@ -534,14 +568,14 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  const exitLobbyBtn = getEl('exitLobbyBtn');
+  const exitLobbyBtn = getEl("exitLobbyBtn");
   if (exitLobbyBtn) {
-    exitLobbyBtn.onclick = () => {
+    exitLobbyBtn.onclick = async () => {
+      await leaveCurrentRoom();
       if (unsubscribe) {
         unsubscribe();
         unsubscribe = null;
       }
-      // After feedback is done, go back to main menu
       postFeedbackAction = () => {
         showScreen(mainMenu);
       };
@@ -556,10 +590,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function openFeedback(reason) {
-    // You can log or store the reason if you want
     console.log("Opening feedback for reason:", reason);
     if (!feedbackModal) {
-      // If somehow the modal is missing, just fall back
       if (typeof postFeedbackAction === "function") {
         postFeedbackAction();
         postFeedbackAction = null;
@@ -580,15 +612,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Wire feedback buttons
   if (submitFeedbackBtn) {
     submitFeedbackBtn.onclick = async () => {
       const name = feedbackName ? feedbackName.value.trim() : "";
       const func = getStarValue("func");
       const over = getStarValue("over");
-      const gui  = getStarValue("gui");
+      const gui = getStarValue("gui");
       const text = feedbackText ? feedbackText.value.trim() : "";
-
       try {
         if (db && roomId) {
           await db.collection("rmcs_feedback").add({
@@ -615,6 +645,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- 7. CREATE / JOIN LOGIC ---
+
   const createRoomFinal = getEl("createRoomFinal");
   if (createRoomFinal) {
     createRoomFinal.onclick = async () => {
@@ -622,7 +653,6 @@ document.addEventListener("DOMContentLoaded", function () {
       const codeVal =
         getEl("createRoomCode").value.trim().toUpperCase() ||
         Math.random().toString(36).substring(2, 6).toUpperCase();
-
       if (!nameVal) return alert("Agent Name Required");
 
       try {
@@ -645,6 +675,16 @@ document.addEventListener("DOMContentLoaded", function () {
           roleType: "host"
         };
 
+        // NEW: room visibility & waiting room
+        const visibility =
+          roomVisibilitySelect && roomVisibilitySelect.value === "personal"
+            ? "personal"
+            : "public";
+        const waitingRoomEnabled =
+          visibility === "personal" &&
+          waitingRoomToggle &&
+          waitingRoomToggle.checked;
+
         await ref.set({
           host: uid,
           players: [playerData],
@@ -652,7 +692,11 @@ document.addEventListener("DOMContentLoaded", function () {
           scores: { [uid]: 0 },
           muted: [],
           history: [],
-          created: firebase.firestore.FieldValue.serverTimestamp()
+          created: firebase.firestore.FieldValue.serverTimestamp(),
+          maxPlayers: MAX_PLAYERS,
+          visibility,           // "public" | "personal"
+          waitingRoomEnabled,   // bool
+          pendingJoins: []      // NEW
         });
 
         roomId = codeVal;
@@ -670,15 +714,15 @@ document.addEventListener("DOMContentLoaded", function () {
     joinRoomFinal.onclick = async () => {
       const nameVal = getEl("joinPlayerName").value.trim();
       const codeVal = getEl("joinRoomCode").value.trim().toUpperCase();
-
       if (!nameVal || !codeVal) return alert("Credentials Missing");
+
       try {
         const uid = await requireAuth();
         const ref = db.collection("rmcs_rooms").doc(codeVal);
         const snap = await ref.get();
         if (!snap.exists) return alert("Signal Lost (Room Not Found)");
-
         const data = snap.data();
+
         const isVip =
           currentUserData &&
           currentUserData.inventory &&
@@ -696,14 +740,38 @@ document.addEventListener("DOMContentLoaded", function () {
           roleType
         };
 
-        if (!data.players.some((p) => p.id === uid)) {
-          if (data.players.length >= MAX_PLAYERS) {
-            return alert(`Squad Full (${data.players.length}/${MAX_PLAYERS})`);
+        const players = data.players || [];
+        const pending = data.pendingJoins || [];
+
+        const alreadyPlayer = players.some((p) => p.id === uid);
+        const alreadyPending = pending.some((p) => p.id === uid);
+
+        if (!alreadyPlayer && players.length >= MAX_PLAYERS) {
+          return alert(`Squad Full (${players.length}/${MAX_PLAYERS})`);
+        }
+
+        // visibility fallback = public
+        const visibility = data.visibility || "public";
+        const waitingRoomEnabled = !!data.waitingRoomEnabled;
+
+        if (!alreadyPlayer && !alreadyPending) {
+          if (visibility === "public" && !waitingRoomEnabled) {
+            // normal instant join (like before)
+            await ref.update({
+              players: firebase.firestore.FieldValue.arrayUnion(playerData),
+              [`scores.${uid}`]: 0
+            });
+          } else {
+            // NEW: waiting room flow
+            const pendingPlayer = {
+              ...playerData,
+              requestedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            await ref.update({
+              pendingJoins: firebase.firestore.FieldValue.arrayUnion(pendingPlayer)
+            });
+            alert("Join request sent. Waiting for host approval.");
           }
-          await ref.update({
-            players: firebase.firestore.FieldValue.arrayUnion(playerData),
-            [`scores.${uid}`]: 0
-          });
         }
 
         roomId = codeVal;
@@ -717,20 +785,19 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- 8. GAME LOOP ---
-  // --- 8. GAME LOOP ---
   function listenToRoom(roomCode) {
     if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;
     }
-
     const roomRef = db.collection("rmcs_rooms").doc(roomCode);
     let lastPlayerCount = null;
 
     unsubscribe = roomRef.onSnapshot((docSnap) => {
       const data = docSnap.data();
-      if (!firebase.auth().currentUser) return;
-      const selfId = firebase.auth().currentUser.uid;
+      const authUser = firebase.auth().currentUser;
+      if (!authUser) return;
+      const selfId = authUser.uid;
 
       // ROOM DELETED → show feedback to this player
       if (!data) {
@@ -746,37 +813,32 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      // If you were kicked
-      if (!data.players.some((p) => p.id === selfId)) {
-        alert("Kicked from Squad");
-        pushTerminalMessage("You have been removed from this room.", "warning");
+      const players = data.players || [];
+      const pending = data.pendingJoins || [];
+      lastPendingJoins = pending; // keep latest copy
+
+      const isInPlayers = players.some((p) => p.id === selfId);
+      const isPending = pending.some((p) => p.id === selfId);
+
+      // If you are neither player nor pending → kicked/denied
+      if (!isInPlayers && !isPending) {
+        alert("You are no longer in this room (kicked/denied or room reset).");
+        pushTerminalMessage("You are no longer a member of this room.", "warning");
         showScreen(mainMenu);
         return;
       }
 
       // Update room meta
       if (currentRoomCode) currentRoomCode.innerText = roomCode;
-
       const isHost = selfId === data.host;
-      const players = data.players || [];
       const mutedArr = data.muted || [];
-
-      renderPlayersList(
-        players,
-        data.host,
-        selfId,
-        isHost,
-        mutedArr
-      );
-      renderScoreboard(data.scores || {}, players);
 
       if (roomPlayerCountEl) {
         roomPlayerCountEl.textContent = players.length;
       }
 
-      // Game Master – player count changes
+      // Game Master – player count changes (only count players, not pending)
       if (lastPlayerCount === null) {
-        // Initial join
         pushTerminalMessage(
           `Connected to room ${roomCode}. ${players.length} operative(s) online.`,
           "system"
@@ -790,6 +852,14 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }
       lastPlayerCount = players.length;
+
+      // HOST: show & handle join requests
+      if (isHost) {
+        renderJoinRequestsPanel(pending, roomRef);
+      } else if (joinRequestsPanel) {
+        // non-host sees nothing there
+        joinRequestsPanel.innerHTML = "";
+      }
 
       // Host can cancel room
       if (cancelRoomBtn) {
@@ -815,9 +885,29 @@ document.addEventListener("DOMContentLoaded", function () {
         };
       }
 
-      // Host player management (kick / mute)
       if (isHost) {
         bindHostPlayerControls(roomRef);
+      }
+
+      // If I'm still pending (not in players yet) → show waiting screen and stop
+      if (isPending && !isInPlayers) {
+        if (gameContent) {
+          gameContent.style.display = "flex";
+          gameContent.innerHTML = `
+            <div class="flex flex-col items-center w-full max-w-sm animate-fade-in">
+              <div class="text-5xl mb-3 animate-pulse">⏳</div>
+              <h3 class="font-cyber text-neon-blue text-xl tracking-widest mb-2">
+                AWAITING HOST APPROVAL
+              </h3>
+              <p class="text-xs text-gray-400 font-mono text-center">
+                Your request to join has been sent to the host.<br/>
+                Please wait while they decide to allow or deny.
+              </p>
+            </div>
+          `;
+        }
+        // don't render avatars/scoreboard/game yet
+        return;
       }
 
       // Phase transitions
@@ -847,9 +937,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Lobby vs Game UI
       if (data.phase === "lobby") {
-        // hide overlay, show avatars
         if (gameContent) gameContent.style.display = "none";
         renderAvatarsTable(players, selfId, data.host);
+        renderPlayersList(players, data.host, selfId, isHost, mutedArr);
+        renderScoreboard(data.scores || {}, players);
 
         if (startGameBtn) {
           startGameBtn.style.display = "flex";
@@ -859,11 +950,9 @@ document.addEventListener("DOMContentLoaded", function () {
           startGameBtn.innerText = canStart
             ? "INITIATE SEQUENCE"
             : `WAITING (${playerCount}/${MIN_PLAYERS})`;
-
           if (canStart && lastPhase === "lobby") {
             pushTerminalMessage("Minimum squad online. Host can initiate sequence.", "success");
           }
-
           startGameBtn.onclick = () => {
             if (!canStart) return;
             const baseRoles = ["Raja", "Mantri", "Chor", "Sipahi"];
@@ -890,8 +979,10 @@ document.addEventListener("DOMContentLoaded", function () {
           };
         }
       } else {
-        // game mode: show overlay
         if (gameContent) gameContent.style.display = "flex";
+        renderPlayersList(players, data.host, selfId, isHost, mutedArr);
+        renderScoreboard(data.scores || {}, players);
+
         if (startGameBtn) startGameBtn.style.display = "none";
 
         if (data.phase === "reveal")
@@ -904,18 +995,15 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-
   // --- 9. RENDERERS / SCREENS ---
 
   function showRoleRevealScreen(data, selfId, roomRef) {
     const p = data.playerRoles.find((pr) => pr.id === selfId);
     if (!p) return;
-
     const isRS = p.role === "Raja" || p.role === "Sipahi";
     const revealed = data.revealed || [];
     const amIRevealed = revealed.some((r) => r.id === selfId);
 
-    // auto‑advance when Raja & Sipahi exposed
     if (data.host === selfId) {
       const rRev = revealed.some((r) => r.role === "Raja");
       const sRev = revealed.some((r) => r.role === "Sipahi");
@@ -934,7 +1022,6 @@ document.addEventListener("DOMContentLoaded", function () {
         <p class="text-gray-400 text-xs mb-6 font-mono">PROTOCOL: ${
           isRS ? "ACTIVE" : "PASSIVE"
         }</p>
-
         ${
           isRS && !amIRevealed
             ? `<button id="revealRoleBtn" class="cyber-btn danger text-sm w-full max-w-[200px]">EXPOSE IDENTITY</button>`
@@ -942,7 +1029,6 @@ document.addEventListener("DOMContentLoaded", function () {
             ? `<div class="border border-gray-700 text-gray-500 px-4 py-2 text-xs rounded uppercase tracking-widest">Status: Covert</div>`
             : `<div class="text-neon-green text-sm font-bold animate-pulse uppercase border border-neon-green px-4 py-2 rounded">Identity Exposed</div>`
         }
-
         <div class="mt-6 w-full border-t border-gray-800 pt-4">
           <p class="text-[10px] text-gray-500 uppercase mb-2">Exposed Agents</p>
           <div class="flex justify-center gap-2 flex-wrap">
@@ -965,7 +1051,6 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
       </div>
     `;
-
     const btn = document.getElementById("revealRoleBtn");
     if (btn) {
       btn.onclick = () => {
@@ -983,7 +1068,6 @@ document.addEventListener("DOMContentLoaded", function () {
   function showSipahiGuessUI(data, selfId, roomRef) {
     const p = data.playerRoles.find((pr) => pr.id === selfId);
     if (!p) return;
-
     if (p.role !== "Sipahi") {
       gameContent.innerHTML = `
         <div class="text-center animate-fade-in">
@@ -994,11 +1078,9 @@ document.addEventListener("DOMContentLoaded", function () {
       `;
       return;
     }
-
     const targets = data.playerRoles.filter(
       (pr) => pr.role !== "Raja" && pr.role !== "Sipahi"
     );
-
     gameContent.innerHTML = `
       <div class="flex flex-col items-center w-full max-w-sm animate-fade-in">
         <h3 class="font-cyber text-white mb-6 text-sm bg-red-900/20 border border-red-500/30 px-4 py-1 rounded uppercase tracking-widest animate-pulse">
@@ -1016,7 +1098,6 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
       </div>
     `;
-
     document.querySelectorAll(".guess-btn").forEach((btn) => {
       btn.onclick = () => {
         const t = targets.find((tg) => tg.id === btn.dataset.id);
@@ -1038,12 +1119,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const res = data.guess;
     if (!res) return;
     const isCorrect = res.correct;
-
     if (!data.scoreUpdated) {
       if (isCorrect) playSound("caught");
       else playSound("escaped");
     }
-
     if (isHost && !data.scoreUpdated) {
       const pts = calculateRoundPoints(data.playerRoles, isCorrect);
       const newScores = { ...(data.scores || {}) };
@@ -1054,29 +1133,24 @@ document.addEventListener("DOMContentLoaded", function () {
         result: isCorrect ? "Caught" : "Escaped",
         timestamp: new Date().toISOString()
       };
-
       roomRef.update({
         scores: newScores,
         history: firebase.firestore.FieldValue.arrayUnion(historyEntry),
         scoreUpdated: true
       });
-
       awardProgress(pts, isCorrect);
     }
-
     const resultText = isCorrect ? "TARGET NEUTRALIZED" : "MISSION FAILED";
     const resultColor = isCorrect ? "text-neon-green" : "text-red-500";
     const resultEmoji = isCorrect ? "🎯" : "🤡";
     const roleMap = {};
     data.playerRoles.forEach((p) => (roleMap[p.role] = p.name));
-
     gameContent.innerHTML = `
       <div class="flex flex-col items-center w-full max-w-sm animate-fade-in">
         <div class="text-6xl mb-2">${resultEmoji}</div>
         <h2 class="font-cyber text-2xl ${resultColor} mb-6 tracking-widest border-b border-gray-700 pb-2 w-full text-center">
           ${resultText}
         </h2>
-
         <div class="w-full text-sm space-y-2 font-mono text-left mb-6 bg-black/40 p-4 rounded border border-gray-800">
           <div class="flex justify-between items-center">
             <span class="text-yellow-300">👑 RAJA</span>
@@ -1095,7 +1169,6 @@ document.addEventListener("DOMContentLoaded", function () {
             <span class="text-white font-bold">${roleMap["Chor"] || "-"}</span>
           </div>
         </div>
-
         ${
           isHost
             ? `<button id="rebootBtn" class="cyber-btn w-full py-3 shadow-[0_0_20px_rgba(0,243,255,0.3)]">
@@ -1105,13 +1178,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       </div>
     `;
-
-    // Game Master round summary
     const summary = isCorrect
       ? `Sipahi correctly identified the Chor. Security protocol successful.`
       : `Chor evaded detection. Security breach recorded.`;
     pushTerminalMessage(summary, isCorrect ? "success" : "warning");
-
     if (isHost) {
       setTimeout(() => {
         const btn = getEl("rebootBtn");
@@ -1155,7 +1225,6 @@ document.addEventListener("DOMContentLoaded", function () {
       btn.onclick = () => {
         const targetId = btn.getAttribute("data-kick-id");
         if (!confirm("Remove this operative from the room?")) return;
-
         roomRef
           .get()
           .then((snap) => {
@@ -1168,10 +1237,14 @@ document.addEventListener("DOMContentLoaded", function () {
             const newMuted = (data.muted || []).filter(
               (id) => id !== targetId
             );
+            const newPending = (data.pendingJoins || []).filter(
+              (p) => p.id !== targetId
+            );
             roomRef.update({
               players: newPlayers,
               scores: newScores,
-              muted: newMuted
+              muted: newMuted,
+              pendingJoins: newPending
             });
           })
           .catch(console.error);
@@ -1197,8 +1270,75 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- 11. GLOBAL HELPERS & UI RENDERING ---
+  // NEW: HOST JOIN‑REQUEST PANEL (Allow / Deny)
+  function renderJoinRequestsPanel(pending, roomRef) {
+    if (!joinRequestsPanel) return;
 
+    if (!pending || pending.length === 0) {
+      joinRequestsPanel.innerHTML = `
+        <div class="text-[10px] text-gray-500 font-mono italic">
+          No pending join requests.
+        </div>`;
+      return;
+    }
+
+    joinRequestsPanel.innerHTML = pending
+      .map(
+        (p) => `
+        <div class="border border-gray-800 bg-black/40 rounded px-3 py-2 mb-2 text-xs flex items-center justify-between">
+          <div>
+            <div class="text-gray-100 font-mono">
+              ${p.name}
+            </div>
+            <div class="text-[9px] text-gray-500">
+              ID: ${p.id.substring(0, 6)}... · Waiting for approval
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button
+              class="text-[9px] px-2 py-1 border border-neon-green rounded hover:bg-neon-green/20 approve-join-btn"
+              data-player-id="${p.id}">
+              ALLOW
+            </button>
+            <button
+              class="text-[9px] px-2 py-1 border border-red-500 rounded hover:bg-red-500/20 deny-join-btn"
+              data-player-id="${p.id}">
+              DENY
+            </button>
+          </div>
+        </div>
+      `
+      )
+      .join("");
+
+    // single event listener (delegation)
+    joinRequestsPanel.onclick = (e) => {
+      const approveBtn = e.target.closest(".approve-join-btn");
+      const denyBtn = e.target.closest(".deny-join-btn");
+      if (!approveBtn && !denyBtn) return;
+
+      const targetId = (approveBtn || denyBtn).getAttribute("data-player-id");
+      if (!targetId) return;
+
+      const player = lastPendingJoins.find((p) => p.id === targetId);
+      if (!player) return;
+
+      if (approveBtn) {
+        // move from pending → players
+        roomRef.update({
+          players: firebase.firestore.FieldValue.arrayUnion(player),
+          pendingJoins: firebase.firestore.FieldValue.arrayRemove(player),
+          [`scores.${player.id}`]: 0
+        }).catch(console.error);
+      } else if (denyBtn) {
+        roomRef.update({
+          pendingJoins: firebase.firestore.FieldValue.arrayRemove(player)
+        }).catch(console.error);
+      }
+    };
+  }
+
+  // --- 11. GLOBAL HELPERS & UI RENDERING ---
   function getRoleIcon(role) {
     if (role === "Raja") return "👑";
     if (role === "Mantri") return "🧠";
@@ -1226,7 +1366,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (pts <= 0) return;
       const xpGain = Math.max(5, Math.round(pts / 10));
       const coinGain = isCorrect ? 10 : 4;
-
       const userRef = db.collection("users").doc(uid);
       userRef
         .set(
@@ -1238,7 +1377,6 @@ document.addEventListener("DOMContentLoaded", function () {
           { merge: true }
         )
         .catch(console.error);
-
       const me = firebase.auth().currentUser;
       if (me && me.uid === uid && currentUserData) {
         currentUserData.xp += xpGain;
@@ -1258,28 +1396,23 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>`;
       return;
     }
-
     const mutedSet = new Set(mutedIds || []);
-
     playersListEl.innerHTML = players
       .map((p) => {
         const isHost = p.id === hostId;
         const isVip = !!p.isVip;
         const isMuted = mutedSet.has(p.id);
         const isSelf = p.id === selfId;
-
         const tagText = isHost
           ? "HOST"
           : isVip
           ? "VIP"
           : "AGENT";
-
         const tagClass = isHost
           ? "text-neon-blue"
           : isVip
           ? "text-yellow-400"
           : "text-gray-500";
-
         const rightSide = isSelfHost && !isHost
           ? `
             <div class="flex gap-2 items-center">
@@ -1302,7 +1435,6 @@ document.addEventListener("DOMContentLoaded", function () {
           : `<div class="text-[10px] text-gray-400">
                ● ${isMuted ? "MUTED" : "ONLINE"}
              </div>`;
-
         return `
           <div class="flex items-center justify-between px-3 py-2 border border-gray-800 rounded-lg bg-black/40 text-xs mb-1 w-full max-w-xs">
             <div class="flex items-center gap-2">
@@ -1330,7 +1462,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function renderScoreboard(scores, players) {
     if (!scoreListEl || !scores) return;
-
     const sorted = players
       .map((p) => ({
         id: p.id,
@@ -1338,7 +1469,6 @@ document.addEventListener("DOMContentLoaded", function () {
         score: scores[p.id] || 0
       }))
       .sort((a, b) => b.score - a.score);
-
     scoreListEl.innerHTML = sorted
       .map(
         (p, i) => `
@@ -1358,63 +1488,47 @@ document.addEventListener("DOMContentLoaded", function () {
   function renderAvatarsTable(players, selfId, hostId) {
     const table = document.querySelector(".game-table");
     if (!table) return;
-
     table.querySelectorAll(".avatar").forEach((e) => e.remove());
-
     const N = players.length;
     if (N === 0) return;
-
     const radius = 130;
     const cx = 160;
     const cy = 160;
     const selfIdx = players.findIndex((p) => p.id === selfId);
-
     players.forEach((p, i) => {
       const logicalIdx = (i - selfIdx + N) % N;
       const angle = Math.PI / 2 + (2 * Math.PI * logicalIdx) / N;
-
       const x = cx + radius * Math.cos(angle) - 35;
       const y = cy + radius * Math.sin(angle) - 35;
-
       const el = document.createElement("div");
       el.className = "avatar";
       el.style.left = x + "px";
       el.style.top = y + "px";
-
       let icon = "👤";
       if (p.inventory) {
         if (p.inventory.includes("robot_avatar")) icon = "🤖";
         else if (p.inventory.includes("alien_avatar")) icon = "👽";
       }
-
-      let badge = "";
       const isHost = p.id === hostId;
       const isVip = !!p.isVip;
-      if (isHost) badge = "👑";
-      else if (isVip) badge = "⭐";
-      else badge = "🎮";
-
       const isSelf = p.id === selfId;
-      
+
       el.innerHTML = `
         <span class="text-3xl drop-shadow-md">${icon}</span>
-        <div class="avatar-name ${isSelf ? 'avatar-name-self' : ''}">
+        <div class="avatar-name ${isSelf ? "avatar-name-self" : ""}">
           ${p.name}
         </div>
       `;
-      
+
       if (isSelf) {
-        el.style.borderColor = '#f97316'; // same orange
-        el.style.boxShadow = '0 0 20px rgba(249, 115, 22, 0.8)';
+        el.style.borderColor = "#f97316";
+        el.style.boxShadow = "0 0 20px rgba(249, 115, 22, 0.8)";
       }
-
-
       table.appendChild(el);
     });
   }
 
   // --- 12. HISTORY MODAL & GLOBAL LEADERBOARD (PUBLIC RANKING) ---
-
   if (openHistoryBtn && historyModal && historyContent) {
     openHistoryBtn.onclick = () => {
       if (!roomId) {
@@ -1440,13 +1554,11 @@ document.addEventListener("DOMContentLoaded", function () {
       const roomSnap = await db.collection("rmcs_rooms").doc(roomCode).get();
       const data = roomSnap.data() || {};
       const history = data.history || [];
-
       let historyHtml = `
         <h4 class="font-cyber text-neon-blue text-sm tracking-widest mb-3">
           ROOM HISTORY
         </h4>
       `;
-
       if (!history.length) {
         historyHtml += `
           <div class="text-xs text-gray-500 font-mono mb-6">
@@ -1490,19 +1602,16 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
       }
 
-      // Global leaderboard
       const usersSnap = await db
         .collection("users")
         .orderBy("xp", "desc")
         .limit(20)
         .get();
-
       let leaderboardHtml = `
         <h4 class="font-cyber text-neon-green text-sm tracking-widest mb-3">
           GLOBAL RANKING
         </h4>
       `;
-
       if (usersSnap.empty) {
         leaderboardHtml += `
           <div class="text-xs text-gray-500 font-mono">
@@ -1545,7 +1654,6 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
       }
 
-      // Current user stats
       let myStats = "";
       const me = firebase.auth().currentUser;
       if (me) {
@@ -1565,7 +1673,6 @@ document.addEventListener("DOMContentLoaded", function () {
           `;
         }
       }
-
       historyContent.innerHTML = `
         <div class="text-xs text-gray-200">
           ${historyHtml}
@@ -1585,7 +1692,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const params = new URLSearchParams(window.location.search);
     const autoRoom = params.get("room");
     if (!autoRoom) return;
-    // Move to Join screen
     showScreen(joinScreen);
     const joinCodeInput = getEl("joinRoomCode");
     if (joinCodeInput) joinCodeInput.value = autoRoom;
