@@ -1251,13 +1251,13 @@ document.addEventListener("DOMContentLoaded", function () {
   
     const isCorrect = res.correct;
   
-    // Play sound once per round
+    // Play SFX once per result
     if (!data.scoreUpdated) {
       if (isCorrect) playSound("caught");
       else playSound("escaped");
     }
   
-    // Host: update scores & history once
+    // HOST ONLY: update scores + detailed history entry
     if (isHost && !data.scoreUpdated) {
       const pts = calculateRoundPoints(data.playerRoles, isCorrect);
       const newScores = { ...(data.scores || {}) };
@@ -1266,9 +1266,16 @@ document.addEventListener("DOMContentLoaded", function () {
         newScores[uid] = (newScores[uid] || 0) + pts[uid];
       });
   
+      // Round history entry with roles + per‑round points
       const historyEntry = {
         result: isCorrect ? "Caught" : "Escaped",
-        timestamp: new Date().toISOString()
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        roles: (data.playerRoles || []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          role: p.role,          // Raja / Mantri / Sipahi / Chor / Civilian
+          points: pts[p.id] || 0 // points earned this round
+        }))
       };
   
       roomRef.update({
@@ -1277,97 +1284,110 @@ document.addEventListener("DOMContentLoaded", function () {
         scoreUpdated: true
       });
   
+      // XP + coins
       awardProgress(pts, isCorrect);
     }
   
-    // Summary line for terminal
+    const resultText = isCorrect ? "TARGET NEUTRALIZED" : "MISSION FAILED";
+    const resultColor = isCorrect ? "text-neon-green" : "text-red-500";
+    const resultEmoji = isCorrect ? "🎯" : "🤡";
+  
+    const roleMap = {};
+    (data.playerRoles || []).forEach((p) => (roleMap[p.role] = p.name));
+  
     const summary = isCorrect
       ? `Sipahi correctly identified the Chor. Security protocol successful.`
       : `Chor evaded detection. Security breach recorded.`;
   
     pushTerminalMessage(summary, isCorrect ? "success" : "warning");
   
-    // 🔹 Use the *global* gameContent (DON'T redeclare it)
-    if (!gameContent) return;
+    const gameContent = getEl("gameContent");
     gameContent.style.display = "flex";
     gameContent.innerHTML = `
-      <div class="w-full max-w-md mx-auto text-center space-y-4">
-        <h2 class="font-cyber text-2xl md:text-3xl text-neon-blue tracking-[0.25em] uppercase">
-          Round Complete
+      <div class="flex flex-col items-center w-full max-w-sm animate-fade-in">
+        <div class="text-6xl mb-2">${resultEmoji}</div>
+        <h2 class="font-cyber text-2xl ${resultColor} mb-6 tracking-widest border-b border-gray-700 pb-2 w-full text-center">
+          ${resultText}
         </h2>
-        <p class="font-mono text-sm text-gray-300 leading-relaxed">
-          ${summary}
-        </p>
   
-        <div class="mt-4 text-xs font-mono text-gray-400">
-          Roles have been logged in the mission archive.
+        <div class="w-full text-sm space-y-2 font-mono text-left mb-6 bg-black/40 p-4 rounded border border-gray-800">
+          <div class="flex justify-between items-center">
+            <span class="text-yellow-300">👑 RAJA</span>
+            <span class="text-white font-bold">${roleMap["Raja"] || "-"}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-fuchsia-300">🧠 MANTRI</span>
+            <span class="text-white font-bold">${roleMap["Mantri"] || "-"}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-cyan-300">🛡️ SIPAHI</span>
+            <span class="text-white font-bold">${roleMap["Sipahi"] || "-"}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-rose-400">🔪 CHOR</span>
+            <span class="text-white font-bold">${roleMap["Chor"] || "-"}</span>
+          </div>
         </div>
   
-        <div class="mt-6">
-          ${
-            isHost
-              ? `<button id="rebootBtn"
-                         class="cyber-btn w-full py-3 shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-                   REBOOT SYSTEM
-                 </button>`
-              : `<div class="text-xs text-gray-500 animate-pulse">
-                   WAITING FOR HOST TO REBOOT…
-                 </div>`
-          }
-        </div>
+        ${
+          isHost
+            ? `<button id="rebootBtn" class="cyber-btn w-full py-3 shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+                 REBOOT SYSTEM
+               </button>`
+            : `<div class="text-xs text-gray-500 animate-pulse">WAITING FOR HOST...</div>`
+        }
       </div>
     `;
   
-    // If not host, stop here
+    // If not host, nothing more to do on this client
     if (!isHost) return;
   
-    // Host only: wire up REBOOT SYSTEM
+    // === HOST ONLY: wire up the reboot button ===
     const rebootBtn = getEl("rebootBtn");
-    if (!rebootBtn) {
+    if (rebootBtn) {
+      rebootBtn.addEventListener("click", async () => {
+        try {
+          rebootBtn.disabled = true;
+          rebootBtn.innerText = "INITIALIZING…";
+  
+          const playerCount = data.playerRoles.length;
+          const baseRoles = ["Raja", "Mantri", "Chor", "Sipahi"];
+          const extraCount = Math.max(0, playerCount - baseRoles.length);
+          const extraRoles = Array.from({ length: extraCount }, () => "Civilian");
+          const roles = [...baseRoles, ...extraRoles].sort(
+            () => Math.random() - 0.5
+          );
+  
+          const newPlayerRoles = data.playerRoles.map((p, i) => ({
+            id: p.id,
+            name: p.name,
+            role: roles[i]
+          }));
+  
+          await roomRef.update({
+            phase: "reveal",
+            playerRoles: newPlayerRoles,
+            revealed: [],
+            guess: null,
+            scoreUpdated: false
+          });
+  
+          gameContent.style.display = "none";
+        } catch (err) {
+          console.error("Reboot failed:", err);
+          rebootBtn.disabled = false;
+          rebootBtn.innerText = "REBOOT SYSTEM";
+          pushTerminalMessage(
+            "Reboot failed. Check console / Firestore rules.",
+            "error"
+          );
+        }
+      });
+    } else {
       console.warn("Reboot button not found in DOM");
-      return;
     }
-  
-    rebootBtn.addEventListener("click", async () => {
-      try {
-        rebootBtn.disabled = true;
-        rebootBtn.innerText = "INITIALIZING…";
-  
-        const playerCount = data.playerRoles.length;
-        const baseRoles = ["Raja", "Mantri", "Chor", "Sipahi"];
-        const extraCount = Math.max(0, playerCount - baseRoles.length);
-        const extraRoles = Array.from({ length: extraCount }, () => "Civilian");
-        const roles = [...baseRoles, ...extraRoles].sort(
-          () => Math.random() - 0.5
-        );
-  
-        const newPlayerRoles = data.playerRoles.map((p, i) => ({
-          id: p.id,
-          name: p.name,
-          role: roles[i]
-        }));
-  
-        await roomRef.update({
-          phase: "reveal",
-          playerRoles: newPlayerRoles,
-          revealed: [],
-          guess: null,
-          scoreUpdated: false
-        });
-  
-        // Hide overlay if you want
-        gameContent.style.display = "none";
-      } catch (err) {
-        console.error("Reboot failed:", err);
-        rebootBtn.disabled = false;
-        rebootBtn.innerText = "REBOOT SYSTEM";
-        pushTerminalMessage(
-          "Reboot failed. Check console / Firestore rules.",
-          "warning"
-        );
-      }
-    });
   }
+
 
 
 
@@ -1664,6 +1684,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- 12. HISTORY MODAL & GLOBAL LEADERBOARD ---
   
   // Open history modal: show ROOM HISTORY + button to toggle GLOBAL RANKING
+  // --- 12. HISTORY MODAL & GLOBAL LEADERBOARD ---
+  
   if (openHistoryBtn && historyModal && historyContent) {
     openHistoryBtn.onclick = () => {
       if (!roomId) {
@@ -1674,7 +1696,7 @@ document.addEventListener("DOMContentLoaded", function () {
       historyModal.classList.remove("hidden");
       historyModal.classList.add("flex");
   
-      // Base layout inside modal
+      // Layout: (1) room history table, (2) button, (3) optional global ranking
       historyContent.innerHTML = `
         <div id="roomHistoryWrapper" class="mb-6 text-xs text-gray-200">
           <div class="text-gray-400 text-sm font-mono">
@@ -1693,14 +1715,14 @@ document.addEventListener("DOMContentLoaded", function () {
   
         <div id="globalRankingWrapper"
              class="mt-2 text-xs text-gray-200 hidden">
-          <!-- Filled on demand -->
+          <!-- global table injected on demand -->
         </div>
       `;
   
-      // Load only room history by default
+      // Load only round‑wise room history by default
       loadRoomHistory(roomId);
   
-      // Wire up the "VIEW GLOBAL RANKING" toggle
+      // Wire toggle button for global ranking
       const showGlobalBtn = document.getElementById("showGlobalBtn");
       const globalWrapper = document.getElementById("globalRankingWrapper");
   
@@ -1731,7 +1753,6 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
   
-  // Close history modal
   if (closeHistoryBtn && historyModal) {
     closeHistoryBtn.onclick = () => {
       historyModal.classList.add("hidden");
@@ -1739,7 +1760,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   
   /**
-   * Load ONLY the room's round history into #roomHistoryWrapper
+   * Loads per‑round mission history:
+   * R#, Raja, Mantri, Sipahi, Chor, Status (Caught/Escaped) + per‑round points.
    */
   async function loadRoomHistory(roomCode) {
     const wrapper = document.getElementById("roomHistoryWrapper");
@@ -1750,69 +1772,100 @@ document.addEventListener("DOMContentLoaded", function () {
       const data = roomSnap.data() || {};
       const history = data.history || [];
   
-      let historyHtml = `
+      // Keep only entries with roles[] (new format). Old minimal entries are skipped.
+      const richRounds = history.filter(
+        (h) => Array.isArray(h.roles) && h.roles.length
+      );
+  
+      let html = `
         <h4 class="font-cyber text-neon-blue text-sm tracking-widest mb-3">
           ROOM HISTORY
         </h4>
       `;
   
-      if (!history.length) {
-        historyHtml += `
+      if (!richRounds.length) {
+        html += `
           <div class="text-xs text-gray-500 font-mono mb-6">
-            No rounds logged yet.
+            No detailed rounds logged yet.
           </div>`;
-      } else {
-        historyHtml += `
-          <div class="max-h-40 overflow-y-auto border border-gray-800 rounded mb-6">
-            <table class="w-full text-xs font-mono">
-              <thead class="bg-black/60">
-                <tr>
-                  <th class="px-2 py-1 text-left text-gray-400">#</th>
-                  <th class="px-2 py-1 text-left text-gray-400">Result</th>
-                  <th class="px-2 py-1 text-left text-gray-400">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${history
-                  .map((h, idx) => {
-                    const dt = new Date(h.timestamp || Date.now());
-                    return `
-                      <tr class="border-t border-gray-800">
-                        <td class="px-2 py-1 text-gray-500">${idx + 1}</td>
-                        <td class="px-2 py-1 ${
-                          h.result === "Caught"
-                            ? "text-neon-green"
-                            : "text-red-400"
-                        }">
-                          ${h.result}
-                        </td>
-                        <td class="px-2 py-1 text-gray-400">
-                          ${dt.toLocaleString()}
-                        </td>
-                      </tr>
-                    `;
-                  })
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
-        `;
+        wrapper.innerHTML = html;
+        return;
       }
   
-      wrapper.innerHTML = historyHtml;
+      html += `
+        <div class="max-h-56 overflow-y-auto border border-gray-800 rounded">
+          <table class="w-full text-xs font-mono">
+            <thead class="bg-black/60">
+              <tr>
+                <th class="px-2 py-1 text-left text-gray-400">R#</th>
+                <th class="px-2 py-1 text-left text-gray-400">Raja</th>
+                <th class="px-2 py-1 text-left text-gray-400">Mantri</th>
+                <th class="px-2 py-1 text-left text-gray-400">Sipahi</th>
+                <th class="px-2 py-1 text-left text-gray-400">Chor</th>
+                <th class="px-2 py-1 text-left text-gray-400">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${richRounds
+                .map((round, idx) => {
+                  const map = {};
+                  (round.roles || []).forEach((r) => (map[r.role] = r));
+  
+                  const raja = map["Raja"] || {};
+                  const mantri = map["Mantri"] || {};
+                  const sipahi = map["Sipahi"] || {};
+                  const chor = map["Chor"] || {};
+  
+                  const status = round.result || "-";
+                  const statusClass =
+                    status === "Caught"
+                      ? "text-neon-green"
+                      : status === "Escaped"
+                      ? "text-red-400"
+                      : "text-gray-400";
+  
+                  const cell = (obj, nameClass) => `
+                    <td class="px-2 py-2 align-top">
+                      <div class="${nameClass} font-semibold">
+                        ${obj.name || "-"}
+                      </div>
+                      <div class="text-[10px] text-gray-400">
+                        +${obj.points || 0}
+                      </div>
+                    </td>
+                  `;
+  
+                  return `
+                    <tr class="border-t border-gray-800">
+                      <td class="px-2 py-2 text-gray-500 align-top">${idx + 1}</td>
+                      ${cell(raja, "text-yellow-300")}
+                      ${cell(mantri, "text-fuchsia-300")}
+                      ${cell(sipahi, "text-cyan-300")}
+                      ${cell(chor, "text-rose-400")}
+                      <td class="px-2 py-2 ${statusClass} font-semibold align-top">
+                        ${status}
+                      </td>
+                    </tr>
+                  `;
+                })
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+  
+      wrapper.innerHTML = html;
     } catch (e) {
       console.error(e);
       wrapper.innerHTML =
-        '<div class="text-red-400 text-xs font-mono">Failed to load mission log.</div>';
+        '<div class="text-red-400 text-xs font-mono">Failed to load mission history.</div>';
     }
   }
   
   /**
-   * Load GLOBAL leaderboard (and your season progress) into the given element
+   * Loads top agents globally into the given wrapper element.
    */
   async function loadGlobalRanking(targetEl) {
-    if (!targetEl) return;
-  
     try {
       const usersSnap = await db
         .collection("users")
@@ -1833,7 +1886,7 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>`;
       } else {
         leaderboardHtml += `
-          <div class="max-h-40 overflow-y-auto border border-gray-800 rounded mb-4">
+          <div class="max-h-48 overflow-y-auto border border-gray-800 rounded mb-4">
             <table class="w-full text-xs font-mono">
               <thead class="bg-black/60">
                 <tr>
@@ -1868,7 +1921,7 @@ document.addEventListener("DOMContentLoaded", function () {
         `;
       }
   
-      // Your own season progress
+      // Your Season Progress
       let myStats = "";
       const me = firebase.auth().currentUser;
       if (me) {
@@ -1896,6 +1949,7 @@ document.addEventListener("DOMContentLoaded", function () {
         '<div class="text-red-400 text-xs font-mono">Failed to load global ranking.</div>';
     }
   }
+
 
   // --- 13. AUTO‑JOIN ROOM VIA ?room=XXXX ---
   (function autoJoinFromUrl() {
