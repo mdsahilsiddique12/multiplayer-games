@@ -15,6 +15,13 @@ document.addEventListener("DOMContentLoaded", function () {
   // NEW: keep track of pending join requests locally (for host)
   let lastPendingJoins = [];
 
+  // --- CHAT CONSTANTS (LIMITS + ENCRYPTION) ---
+  const CHAT_HISTORY_LIMIT = 150;          // max messages stored per room
+  const CHAT_FREE_LIMIT = 80;              // per-player quota (non-VIP)
+  const CHAT_VIP_LIMIT = 220;              // per-player quota (VIP)
+  const CHAT_MAX_MESSAGE_LENGTH = 240;     // per message length cap
+  const CHAT_SECRET = "rmcs_v1_chat_key";  // lightweight XOR key (same on all clients)
+
   // --- 2. DOM ELEMENTS ---
   const getEl = (id) => document.getElementById(id);
   const mainMenu = getEl("mainMenu");
@@ -48,13 +55,20 @@ document.addEventListener("DOMContentLoaded", function () {
   const publicLobbiesList = getEl("publicLobbiesList");
 
   // NEW: create‑room options + host join‑request panel
-  const roomVisibilitySelect = getEl("roomVisibility");      // <select> Public / Personal
-  const waitingRoomToggle = getEl("waitingRoomToggle");      // <input type="checkbox">
+  const roomVisibilitySelect = getEl("roomVisibility");      // <select> (optional)
+  const waitingRoomToggle = getEl("waitingRoomToggle");      // <input type="checkbox"> (optional)
+  const requireApprovalCheckbox = getEl("requireApprovalCheckbox"); // actual checkbox from HTML
   const joinRequestsPanel = getEl("joinRequestsPanel");      // host’s “Allow / Deny” list
 
-  let unsubscribeLobbyList = null;
+  // NEW: CHAT DOM
+  const chatLogEl = getEl("chatLog");
+  const chatInputEl = getEl("chatInput");
+  const chatSendBtnEl = getEl("chatSendBtn");
+  const chatQuotaEl = getEl("chatQuota");
 
+  let unsubscribeLobbyList = null;
   const roundTransition = getEl("roundTransition");
+
   // --- FEEDBACK STATE ---
   let postFeedbackAction = null;
 
@@ -63,25 +77,20 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!roomId) return;
     const user = firebase.auth().currentUser;
     if (!user) return;
-
     const uid = user.uid;
     const roomRef = db.collection("rmcs_rooms").doc(roomId);
-
     try {
       const snap = await roomRef.get();
       if (!snap.exists) return;
       const data = snap.data();
-
       const oldPlayers = data.players || [];
       const newPlayers = oldPlayers.filter((p) => p.id !== uid);
       const newScores = { ...(data.scores || {}) };
       delete newScores[uid];
       const newMuted = (data.muted || []).filter((id) => id !== uid);
-
       // also drop from pendingJoins if present
       const oldPending = data.pendingJoins || [];
       const newPending = oldPending.filter((p) => p.id !== uid);
-
       // If host leaves, either transfer host or delete room
       if (uid === data.host) {
         if (newPlayers.length === 0) {
@@ -113,8 +122,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // NEW: try to clean up when tab closes / refreshes
   window.addEventListener("beforeunload", () => {
-    // we don't await here; browser may or may not finish it,
-    // but it's better than nothing.
     leaveCurrentRoom();
   });
 
@@ -143,12 +150,42 @@ document.addEventListener("DOMContentLoaded", function () {
       text-shadow:0 0 6px rgba(78,243,255,0.5);
     `
   };
-
   function getNameStyleForPlayer(p, hostId) {
     const isHost = p.id === hostId;
     const isVip = !!p.isVip || (p.inventory && p.inventory.includes("vip_pass"));
     const roleType = p.roleType || (isHost ? "host" : isVip ? "vip" : "normal");
     return NAME_STYLES[roleType] || NAME_STYLES.normal;
+  }
+
+  // --- LIGHTWEIGHT CHAT ENCRYPTION HELPERS ---
+  function encryptChatText(plain) {
+    try {
+      const key = CHAT_SECRET;
+      let out = "";
+      for (let i = 0; i < plain.length; i++) {
+        const c = plain.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+        out += String.fromCharCode(c);
+      }
+      return btoa(out);
+    } catch (e) {
+      console.error("encryptChatText failed", e);
+      return "";
+    }
+  }
+  function decryptChatText(encB64) {
+    try {
+      const key = CHAT_SECRET;
+      const data = atob(encB64 || "");
+      let out = "";
+      for (let i = 0; i < data.length; i++) {
+        const c = data.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+        out += String.fromCharCode(c);
+      }
+      return out;
+    } catch (e) {
+      console.error("decryptChatText failed", e);
+      return "[message corrupted]";
+    }
   }
 
   // --- 3. SOUND ENGINE ---
@@ -168,7 +205,6 @@ document.addEventListener("DOMContentLoaded", function () {
       cash: new Audio("sounds/ca.mp3")
     }
   };
-
   function playSound(type) {
     const hasMemePack =
       currentUserData &&
@@ -188,7 +224,6 @@ document.addEventListener("DOMContentLoaded", function () {
       await loadUserData(user.uid);
     }
   });
-
   async function loadUserData(uid) {
     const userRef = db.collection("users").doc(uid);
     const snap = await userRef.get();
@@ -205,20 +240,17 @@ document.addEventListener("DOMContentLoaded", function () {
       currentUserData = initialData;
     } else {
       currentUserData = snap.data();
-      // Ensure defaults exist
       if (typeof currentUserData.coins !== "number") currentUserData.coins = 0;
       if (typeof currentUserData.xp !== "number") currentUserData.xp = 0;
       if (typeof currentUserData.seasonXp !== "number") currentUserData.seasonXp = 0;
     }
     refreshUserCoinsUI();
   }
-
   async function requireAuth() {
     const user = firebase.auth().currentUser;
     if (!user) throw new Error("Auth Required");
     return user.uid;
   }
-
   function refreshUserCoinsUI() {
     if (userCoinsEl && currentUserData) {
       userCoinsEl.textContent = currentUserData.coins ?? 0;
@@ -233,12 +265,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const hh = now.getHours().toString().padStart(2, "0");
     const mm = now.getMinutes().toString().padStart(2, "0");
     const stamp = `${hh}:${mm}`;
-
     let colorClass = "text-neon-blue";
     if (tone === "hint") colorClass = "text-cyan-300";
     if (tone === "warning") colorClass = "text-red-400";
     if (tone === "success") colorClass = "text-neon-green";
-
     const line = document.createElement("div");
     line.className = "border border-gray-800 rounded px-2 py-1 bg-black/40";
     line.innerHTML = `
@@ -246,7 +276,7 @@ document.addEventListener("DOMContentLoaded", function () {
       <span class="${colorClass} font-bold">GM:</span>
       <span class="text-gray-300 ml-1">${message}</span>
     `;
-    box.prepend(line); // newest on top
+    box.prepend(line);
     while (box.children.length > 25) {
       box.removeChild(box.lastChild);
     }
@@ -254,7 +284,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- 5. IN‑GAME SHOP / BLACK MARKET ---
   const STORE_ITEMS = [
-    // AVATARS
     {
       id: "robot_avatar",
       name: "Robot Avatar",
@@ -273,7 +302,6 @@ document.addEventListener("DOMContentLoaded", function () {
       emoji: "👽",
       desc: "Classified extra‑terrestrial identity."
     },
-    // NAME COLORS
     {
       id: "gold_name",
       name: "Gold Nameplate",
@@ -292,7 +320,6 @@ document.addEventListener("DOMContentLoaded", function () {
       emoji: "💠",
       desc: "Clean cyber aesthetic."
     },
-    // SOUND PACKS
     {
       id: "meme_pack",
       name: "Meme Sound Pack",
@@ -302,7 +329,6 @@ document.addEventListener("DOMContentLoaded", function () {
       emoji: "😂",
       desc: "Sabash / Failure / Drum Roll pack."
     },
-    // VIP PASSES / BOOSTS
     {
       id: "vip_pass",
       name: "VIP Protocol Access",
@@ -313,7 +339,6 @@ document.addEventListener("DOMContentLoaded", function () {
       desc: "Unlock VIP skins & cosmetics."
     }
   ];
-
   function ownsItem(id) {
     return (
       currentUserData &&
@@ -321,11 +346,9 @@ document.addEventListener("DOMContentLoaded", function () {
       currentUserData.inventory.includes(id)
     );
   }
-
   function userHasVip() {
     return ownsItem("vip_pass");
   }
-
   function renderStore(category = "avatars") {
     if (!storeGrid) return;
     if (!currentUserData) refreshUserCoinsUI();
@@ -383,7 +406,6 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
   }
-
   async function purchaseItem(item) {
     if (!currentUserData) {
       alert("Login error. Please re‑load.");
@@ -444,11 +466,9 @@ document.addEventListener("DOMContentLoaded", function () {
       unsubscribeLobbyList();
       unsubscribeLobbyList = null;
     }
-    // UPDATED: only show PUBLIC lobbies
     const q = db.collection("rmcs_rooms")
       .where("phase", "==", "lobby")
-      .where("visibility", "==", "public"); // NEW filter
-
+      .where("visibility", "==", "public");
     unsubscribeLobbyList = q.onSnapshot((snap) => {
       if (snap.empty) {
         publicLobbiesList.innerHTML = `
@@ -492,7 +512,6 @@ document.addEventListener("DOMContentLoaded", function () {
       `).join("");
     });
   }
-
   if (publicLobbiesList) {
     publicLobbiesList.addEventListener("click", (e) => {
       const btn = e.target.closest(".join-public-btn");
@@ -518,7 +537,6 @@ document.addEventListener("DOMContentLoaded", function () {
       screen.classList.add("active-screen");
     }
   }
-
   document.querySelectorAll(".create-btn").forEach(
     (b) =>
       (b.onclick = () => {
@@ -537,7 +555,6 @@ document.addEventListener("DOMContentLoaded", function () {
         showScreen(mainMenu);
       })
   );
-
   if (openStoreBtn && storeScreen) {
     openStoreBtn.onclick = () => {
       showScreen(storeScreen);
@@ -545,7 +562,6 @@ document.addEventListener("DOMContentLoaded", function () {
       window.filterStore("avatars");
     };
   }
-
   if (copyCodeBtn) {
     copyCodeBtn.onclick = () => {
       const code = currentRoomCode ? currentRoomCode.innerText.trim() : "";
@@ -567,7 +583,6 @@ document.addEventListener("DOMContentLoaded", function () {
         .catch(() => alert("Copy failed, please copy manually."));
     };
   }
-
   const exitLobbyBtn = getEl("exitLobbyBtn");
   if (exitLobbyBtn) {
     exitLobbyBtn.onclick = async () => {
@@ -588,7 +603,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const checked = document.querySelector(`input[name="${group}"]:checked`);
     return checked ? Number(checked.value) : null;
   }
-
   function openFeedback(reason) {
     console.log("Opening feedback for reason:", reason);
     if (!feedbackModal) {
@@ -601,7 +615,6 @@ document.addEventListener("DOMContentLoaded", function () {
     feedbackModal.classList.remove("hidden");
     feedbackModal.style.display = "flex";
   }
-
   function closeFeedback() {
     if (!feedbackModal) return;
     feedbackModal.style.display = "none";
@@ -611,7 +624,6 @@ document.addEventListener("DOMContentLoaded", function () {
       postFeedbackAction = null;
     }
   }
-
   if (submitFeedbackBtn) {
     submitFeedbackBtn.onclick = async () => {
       const name = feedbackName ? feedbackName.value.trim() : "";
@@ -637,7 +649,6 @@ document.addEventListener("DOMContentLoaded", function () {
       closeFeedback();
     };
   }
-
   if (skipFeedbackBtn) {
     skipFeedbackBtn.onclick = () => {
       closeFeedback();
@@ -645,7 +656,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- 7. CREATE / JOIN LOGIC ---
-
   const createRoomFinal = getEl("createRoomFinal");
   if (createRoomFinal) {
     createRoomFinal.onclick = async () => {
@@ -654,18 +664,15 @@ document.addEventListener("DOMContentLoaded", function () {
         getEl("createRoomCode").value.trim().toUpperCase() ||
         Math.random().toString(36).substring(2, 6).toUpperCase();
       if (!nameVal) return alert("Agent Name Required");
-
       try {
         const uid = await requireAuth();
         const ref = db.collection("rmcs_rooms").doc(codeVal);
         if ((await ref.get()).exists)
           return alert("Frequency Occupied (Code Taken)");
-
         const isVip =
           currentUserData &&
           currentUserData.inventory &&
           currentUserData.inventory.includes("vip_pass");
-
         const playerData = {
           id: uid,
           name: nameVal,
@@ -675,15 +682,19 @@ document.addEventListener("DOMContentLoaded", function () {
           roleType: "host"
         };
 
-        // NEW: room visibility & waiting room
-        const visibility =
-          roomVisibilitySelect && roomVisibilitySelect.value === "personal"
-            ? "personal"
-            : "public";
+        // --- UPDATED ROOM VISIBILITY + WAITING ROOM (RADIO + FALLBACK) ---
+        const visibility = (() => {
+          const radio = document.querySelector('input[name="roomVisibility"]:checked');
+          if (radio && radio.value === "personal") return "personal";
+          if (roomVisibilitySelect && roomVisibilitySelect.value === "personal") return "personal";
+          return "public";
+        })();
         const waitingRoomEnabled =
           visibility === "personal" &&
-          waitingRoomToggle &&
-          waitingRoomToggle.checked;
+          (
+            (waitingRoomToggle && waitingRoomToggle.checked) ||
+            (requireApprovalCheckbox && requireApprovalCheckbox.checked)
+          );
 
         await ref.set({
           host: uid,
@@ -696,9 +707,10 @@ document.addEventListener("DOMContentLoaded", function () {
           maxPlayers: MAX_PLAYERS,
           visibility,           // "public" | "personal"
           waitingRoomEnabled,   // bool
-          pendingJoins: []      // NEW
+          pendingJoins: [],     // NEW
+          chat: [],             // NEW: encrypted chat array
+          chatMessageCounts: {} // NEW: per-player message counts
         });
-
         roomId = codeVal;
         listenToRoom(roomId);
         showScreen(gameScreen);
@@ -715,22 +727,18 @@ document.addEventListener("DOMContentLoaded", function () {
       const nameVal = getEl("joinPlayerName").value.trim();
       const codeVal = getEl("joinRoomCode").value.trim().toUpperCase();
       if (!nameVal || !codeVal) return alert("Credentials Missing");
-
       try {
         const uid = await requireAuth();
         const ref = db.collection("rmcs_rooms").doc(codeVal);
         const snap = await ref.get();
         if (!snap.exists) return alert("Signal Lost (Room Not Found)");
         const data = snap.data();
-
         const isVip =
           currentUserData &&
           currentUserData.inventory &&
           currentUserData.inventory.includes("vip_pass");
-
         const roleType =
           uid === data.host ? "host" : isVip ? "vip" : "normal";
-
         const playerData = {
           id: uid,
           name: nameVal,
@@ -739,30 +747,22 @@ document.addEventListener("DOMContentLoaded", function () {
           nameColor: isVip ? "gold" : "white",
           roleType
         };
-
         const players = data.players || [];
         const pending = data.pendingJoins || [];
-
         const alreadyPlayer = players.some((p) => p.id === uid);
         const alreadyPending = pending.some((p) => p.id === uid);
-
         if (!alreadyPlayer && players.length >= MAX_PLAYERS) {
           return alert(`Squad Full (${players.length}/${MAX_PLAYERS})`);
         }
-
-        // visibility fallback = public
         const visibility = data.visibility || "public";
         const waitingRoomEnabled = !!data.waitingRoomEnabled;
-
         if (!alreadyPlayer && !alreadyPending) {
           if (visibility === "public" && !waitingRoomEnabled) {
-            // normal instant join (like before)
             await ref.update({
               players: firebase.firestore.FieldValue.arrayUnion(playerData),
               [`scores.${uid}`]: 0
             });
           } else {
-            // NEW: waiting room flow
             const pendingPlayer = {
               ...playerData,
               requestedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -773,7 +773,6 @@ document.addEventListener("DOMContentLoaded", function () {
             alert("Join request sent. Waiting for host approval.");
           }
         }
-
         roomId = codeVal;
         listenToRoom(roomId);
         showScreen(gameScreen);
@@ -784,6 +783,149 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
+  // --- CHAT SENDER (USES ENCRYPTION + LIMITS) ---
+  async function sendChatMessageForCurrentUser() {
+    if (!roomId) {
+      alert("No active room.");
+      return;
+    }
+    if (!chatInputEl) return;
+    let text = chatInputEl.value.trim();
+    if (!text) return;
+    if (text.length > CHAT_MAX_MESSAGE_LENGTH) {
+      text = text.slice(0, CHAT_MAX_MESSAGE_LENGTH);
+    }
+    try {
+      const uid = await requireAuth();
+      const name =
+        (currentUserData && currentUserData.username) ||
+        (currentUserData && currentUserData.displayName) ||
+        "Agent";
+      const isVipUser = !!(currentUserData &&
+        Array.isArray(currentUserData.inventory) &&
+        currentUserData.inventory.includes("vip_pass"));
+      const roomRef = db.collection("rmcs_rooms").doc(roomId);
+      const snap = await roomRef.get();
+      if (!snap.exists) {
+        alert("Room not found.");
+        return;
+      }
+      const data = snap.data() || {};
+      let chatArr = data.chat || [];
+      const counts = data.chatMessageCounts || {};
+      const myCount = counts[uid] || 0;
+      const maxForUser = isVipUser ? CHAT_VIP_LIMIT : CHAT_FREE_LIMIT;
+      if (myCount >= maxForUser) {
+        alert(
+          "You reached the chat limit for this match.\nVIP operatives get extended chat capacity."
+        );
+        return;
+      }
+      const encText = encryptChatText(text);
+      const msgId = Date.now().toString() + "_" + uid;
+      const newMsg = {
+        id: msgId,
+        uid,
+        name,
+        enc: encText,
+        ts: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      chatArr = chatArr.concat(newMsg);
+      if (chatArr.length > CHAT_HISTORY_LIMIT) {
+        chatArr = chatArr.slice(chatArr.length - CHAT_HISTORY_LIMIT);
+      }
+      const newCounts = { ...counts, [uid]: myCount + 1 };
+      await roomRef.update({
+        chat: chatArr,
+        chatMessageCounts: newCounts
+      });
+      chatInputEl.value = "";
+    } catch (e) {
+      console.error("sendChatMessageForCurrentUser failed", e);
+      alert("Failed to send message.");
+    }
+  }
+
+  // BIND CHAT INPUT / BUTTON ONCE
+  if (chatSendBtnEl && chatInputEl) {
+    chatSendBtnEl.onclick = () => {
+      sendChatMessageForCurrentUser();
+    };
+    chatInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessageForCurrentUser();
+      }
+    });
+  }
+
+  // --- CHAT RENDERING (LIMITED HISTORY, DECRYPT ON CLIENT) ---
+  let lastChatSignature = "";
+  function renderChatLog(chatArr, selfId, countsMap) {
+    if (!chatLogEl) return;
+    chatArr = chatArr || [];
+    const sig = chatArr.map((m) => m.id).join("|");
+    if (sig === lastChatSignature) {
+      return; // no changes
+    }
+    lastChatSignature = sig;
+
+    const sorted = [...chatArr].sort((a, b) => {
+      const ta = a.ts && a.ts.seconds ? a.ts.seconds : 0;
+      const tb = b.ts && b.ts.seconds ? b.ts.seconds : 0;
+      return ta - tb;
+    });
+    chatLogEl.innerHTML = sorted
+      .map((m) => {
+        const isSelf = m.uid === selfId;
+        const text = decryptChatText(m.enc || "");
+        const tsDate = m.ts && m.ts.toDate ? m.ts.toDate() : null;
+        const timeStr = tsDate
+          ? tsDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          : "--:--";
+        return `
+          <div class="flex items-start gap-2 ${isSelf ? "justify-end" : "justify-start"}">
+            ${
+              !isSelf
+                ? `<span class="text-[9px] text-gray-500 mt-[2px]">${timeStr}</span>`
+                : ""
+            }
+            <div class="px-2 py-1 rounded border border-gray-800 bg-black/60 max-w-[80%] ${
+              isSelf ? "text-neon-blue border-neon-blue/60" : "text-gray-200"
+            }">
+              <div class="text-[9px] uppercase tracking-[0.18em] text-gray-400 mb-0.5">
+                ${isSelf ? "YOU" : (m.name || "Agent")}
+              </div>
+              <div class="text-[11px] break-words">
+                ${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}
+              </div>
+            </div>
+            ${
+              isSelf
+                ? `<span class="text-[9px] text-gray-500 mt-[2px]">${timeStr}</span>`
+                : ""
+            }
+          </div>
+        `;
+      })
+      .join("");
+
+    chatLogEl.scrollTop = chatLogEl.scrollHeight;
+
+    if (chatQuotaEl && firebase.auth().currentUser) {
+      const selfId2 = firebase.auth().currentUser.uid;
+      const cMap = countsMap || {};
+      const myCount = cMap[selfId2] || 0;
+      const isVipUser = !!(currentUserData &&
+        Array.isArray(currentUserData.inventory) &&
+        currentUserData.inventory.includes("vip_pass"));
+      const maxForUser = isVipUser ? CHAT_VIP_LIMIT : CHAT_FREE_LIMIT;
+      chatQuotaEl.textContent = `Chat used: ${myCount}/${maxForUser}${
+        isVipUser ? " (VIP)" : ""
+      }`;
+    }
+  }
+
   // --- 8. GAME LOOP ---
   function listenToRoom(roomCode) {
     if (unsubscribe) {
@@ -792,14 +934,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     const roomRef = db.collection("rmcs_rooms").doc(roomCode);
     let lastPlayerCount = null;
-
     unsubscribe = roomRef.onSnapshot((docSnap) => {
       const data = docSnap.data();
       const authUser = firebase.auth().currentUser;
       if (!authUser) return;
       const selfId = authUser.uid;
-
-      // ROOM DELETED → show feedback to this player
       if (!data) {
         if (unsubscribe) {
           unsubscribe();
@@ -812,11 +951,9 @@ document.addEventListener("DOMContentLoaded", function () {
         openFeedback("room_closed");
         return;
       }
-
       const players = data.players || [];
       const pending = data.pendingJoins || [];
-      lastPendingJoins = pending; // keep latest copy
-
+      lastPendingJoins = pending;
       const isInPlayers = players.some((p) => p.id === selfId);
       const isPending = pending.some((p) => p.id === selfId);
 
@@ -828,7 +965,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      // Update room meta
       if (currentRoomCode) currentRoomCode.innerText = roomCode;
       const isHost = selfId === data.host;
       const mutedArr = data.muted || [];
@@ -837,7 +973,6 @@ document.addEventListener("DOMContentLoaded", function () {
         roomPlayerCountEl.textContent = players.length;
       }
 
-      // Game Master – player count changes (only count players, not pending)
       if (lastPlayerCount === null) {
         pushTerminalMessage(
           `Connected to room ${roomCode}. ${players.length} operative(s) online.`,
@@ -857,7 +992,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (isHost) {
         renderJoinRequestsPanel(pending, roomRef);
       } else if (joinRequestsPanel) {
-        // non-host sees nothing there
         joinRequestsPanel.innerHTML = "";
       }
 
@@ -884,12 +1018,11 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         };
       }
-
       if (isHost) {
         bindHostPlayerControls(roomRef);
       }
 
-      // If I'm still pending (not in players yet) → show waiting screen and stop
+      // Pending screen
       if (isPending && !isInPlayers) {
         if (gameContent) {
           gameContent.style.display = "flex";
@@ -906,9 +1039,12 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
           `;
         }
-        // don't render avatars/scoreboard/game yet
+        // Chat is disabled while pending; no rendering
         return;
       }
+
+      // --- CHAT RENDERING FROM ROOM DOC ---
+      renderChatLog(data.chat || [], selfId, data.chatMessageCounts || {});
 
       // Phase transitions
       if (data.phase !== lastPhase) {
@@ -941,7 +1077,6 @@ document.addEventListener("DOMContentLoaded", function () {
         renderAvatarsTable(players, selfId, data.host);
         renderPlayersList(players, data.host, selfId, isHost, mutedArr);
         renderScoreboard(data.scores || {}, players);
-
         if (startGameBtn) {
           startGameBtn.style.display = "flex";
           const playerCount = players.length;
@@ -982,9 +1117,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (gameContent) gameContent.style.display = "flex";
         renderPlayersList(players, data.host, selfId, isHost, mutedArr);
         renderScoreboard(data.scores || {}, players);
-
         if (startGameBtn) startGameBtn.style.display = "none";
-
         if (data.phase === "reveal")
           showRoleRevealScreen(data, selfId, roomRef);
         else if (data.phase === "guess")
@@ -996,14 +1129,12 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // --- 9. RENDERERS / SCREENS ---
-
   function showRoleRevealScreen(data, selfId, roomRef) {
     const p = data.playerRoles.find((pr) => pr.id === selfId);
     if (!p) return;
     const isRS = p.role === "Raja" || p.role === "Sipahi";
     const revealed = data.revealed || [];
     const amIRevealed = revealed.some((r) => r.id === selfId);
-
     if (data.host === selfId) {
       const rRev = revealed.some((r) => r.role === "Raja");
       const sRev = revealed.some((r) => r.role === "Sipahi");
@@ -1012,7 +1143,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
     }
-
     gameContent.innerHTML = `
       <div class="flex flex-col items-center animate-fade-in w-full">
         <div class="text-6xl mb-4 filter drop-shadow-[0_0_15px_rgba(0,243,255,0.5)]">
@@ -1220,7 +1350,6 @@ document.addEventListener("DOMContentLoaded", function () {
   function bindHostPlayerControls(roomRef) {
     const kickButtons = document.querySelectorAll("[data-kick-id]");
     const muteButtons = document.querySelectorAll("[data-mute-id]");
-
     kickButtons.forEach((btn) => {
       btn.onclick = () => {
         const targetId = btn.getAttribute("data-kick-id");
@@ -1250,7 +1379,6 @@ document.addEventListener("DOMContentLoaded", function () {
           .catch(console.error);
       };
     });
-
     muteButtons.forEach((btn) => {
       btn.onclick = () => {
         const targetId = btn.getAttribute("data-mute-id");
@@ -1273,7 +1401,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // NEW: HOST JOIN‑REQUEST PANEL (Allow / Deny)
   function renderJoinRequestsPanel(pending, roomRef) {
     if (!joinRequestsPanel) return;
-
     if (!pending || pending.length === 0) {
       joinRequestsPanel.innerHTML = `
         <div class="text-[10px] text-gray-500 font-mono italic">
@@ -1281,7 +1408,6 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>`;
       return;
     }
-
     joinRequestsPanel.innerHTML = pending
       .map(
         (p) => `
@@ -1310,21 +1436,15 @@ document.addEventListener("DOMContentLoaded", function () {
       `
       )
       .join("");
-
-    // single event listener (delegation)
     joinRequestsPanel.onclick = (e) => {
       const approveBtn = e.target.closest(".approve-join-btn");
       const denyBtn = e.target.closest(".deny-join-btn");
       if (!approveBtn && !denyBtn) return;
-
       const targetId = (approveBtn || denyBtn).getAttribute("data-player-id");
       if (!targetId) return;
-
       const player = lastPendingJoins.find((p) => p.id === targetId);
       if (!player) return;
-
       if (approveBtn) {
-        // move from pending → players
         roomRef.update({
           players: firebase.firestore.FieldValue.arrayUnion(player),
           pendingJoins: firebase.firestore.FieldValue.arrayRemove(player),
@@ -1347,7 +1467,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (role === "Civilian") return "👤";
     return "❓";
   }
-
   function calculateRoundPoints(roles, isCorrect) {
     const pts = {};
     roles.forEach((p) => {
@@ -1359,7 +1478,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     return pts;
   }
-
   function awardProgress(pointMap, isCorrect) {
     Object.keys(pointMap).forEach((uid) => {
       const pts = pointMap[uid] || 0;
@@ -1386,7 +1504,6 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     });
   }
-
   function renderPlayersList(players, hostId, selfId, isSelfHost, mutedIds) {
     if (!playersListEl) return;
     if (!players || players.length === 0) {
@@ -1403,11 +1520,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const isVip = !!p.isVip;
         const isMuted = mutedSet.has(p.id);
         const isSelf = p.id === selfId;
-        const tagText = isHost
-          ? "HOST"
-          : isVip
-          ? "VIP"
-          : "AGENT";
+        const tagText = isHost ? "HOST" : isVip ? "VIP" : "AGENT";
         const tagClass = isHost
           ? "text-neon-blue"
           : isVip
@@ -1459,7 +1572,6 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .join("");
   }
-
   function renderScoreboard(scores, players) {
     if (!scoreListEl || !scores) return;
     const sorted = players
@@ -1484,7 +1596,6 @@ document.addEventListener("DOMContentLoaded", function () {
       )
       .join("");
   }
-
   function renderAvatarsTable(players, selfId, hostId) {
     const table = document.querySelector(".game-table");
     if (!table) return;
@@ -1509,17 +1620,13 @@ document.addEventListener("DOMContentLoaded", function () {
         if (p.inventory.includes("robot_avatar")) icon = "🤖";
         else if (p.inventory.includes("alien_avatar")) icon = "👽";
       }
-      const isHost = p.id === hostId;
-      const isVip = !!p.isVip;
       const isSelf = p.id === selfId;
-
       el.innerHTML = `
         <span class="text-3xl drop-shadow-md">${icon}</span>
         <div class="avatar-name ${isSelf ? "avatar-name-self" : ""}">
           ${p.name}
         </div>
       `;
-
       if (isSelf) {
         el.style.borderColor = "#f97316";
         el.style.boxShadow = "0 0 20px rgba(249, 115, 22, 0.8)";
@@ -1528,7 +1635,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- 12. HISTORY MODAL & GLOBAL LEADERBOARD (PUBLIC RANKING) ---
+  // --- 12. HISTORY MODAL & GLOBAL LEADERBOARD ---
   if (openHistoryBtn && historyModal && historyContent) {
     openHistoryBtn.onclick = () => {
       if (!roomId) {
@@ -1542,13 +1649,11 @@ document.addEventListener("DOMContentLoaded", function () {
       loadHistoryAndLeaderboard(roomId);
     };
   }
-
   if (closeHistoryBtn && historyModal) {
     closeHistoryBtn.onclick = () => {
       historyModal.classList.add("hidden");
     };
   }
-
   async function loadHistoryAndLeaderboard(roomCode) {
     try {
       const roomSnap = await db.collection("rmcs_rooms").doc(roomCode).get();
@@ -1601,7 +1706,6 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
         `;
       }
-
       const usersSnap = await db
         .collection("users")
         .orderBy("xp", "desc")
@@ -1653,7 +1757,6 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
         `;
       }
-
       let myStats = "";
       const me = firebase.auth().currentUser;
       if (me) {
