@@ -376,6 +376,26 @@
     <button onclick="openUpgradeModal()" class="upgrade-btn hidden md:block rounded">
       <i class="fa-solid fa-crown mr-2"></i> UPGRADE PRO
     </button>
+    <button onclick="toggleAudio()" class="text-neon-blue border border-neon-blue px-3 py-1 rounded hover:bg-neon-blue/20 transition ml-2">
+      <i id="audioIcon" class="fa-solid fa-volume-high"></i>
+    </button>
+    
+    <script>
+        function toggleAudio() {
+            const isMuted = SonicCore.toggleMute();
+            const icon = document.getElementById('audioIcon');
+            icon.className = isMuted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+            // Optional: Show toast
+            if(window.showToast) window.showToast(isMuted ? "Audio Muted" : "Audio Active", "info");
+        }
+        
+        // Set initial icon state
+        document.addEventListener("DOMContentLoaded", () => {
+             const isMuted = localStorage.getItem('gn_muted') === 'true';
+             const icon = document.getElementById('audioIcon');
+             if(icon) icon.className = isMuted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+        });
+    </script>
 
     <div class="flex items-center gap-4">
       <!-- Added onclick="logoutUser()" and cursor-pointer -->
