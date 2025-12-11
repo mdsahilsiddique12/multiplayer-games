@@ -408,20 +408,20 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   async function purchaseItem(item) {
     if (!currentUserData) {
-      showToast("Login error. Please re‑load.", error);
+      showToast("Login error. Please re‑load.", "error");
       return;
     }
     if (ownsItem(item.id)) {
-      showToast("Already acquired.", error);
+      showToast("Already acquired.", "error");
       return;
     }
     if (item.requiresVip && !userHasVip()) {
-      showToast("Requires VIP PASS. Buy VIP Protocol Access first.", error);
+      showToast("Requires VIP PASS. Buy VIP Protocol Access first.", "error");
       return;
     }
     const coins = currentUserData.coins ?? 0;
     if (coins < item.price) {
-      showToast("Insufficient credits.", error);
+      showToast("Insufficient credits.", "error");
       return;
     }
     try {
@@ -437,10 +437,10 @@ document.addEventListener("DOMContentLoaded", function () {
       refreshUserCoinsUI();
       renderStore(item.type);
       playSound("cash");
-      showToast("Purchase successful.", success);
+      showToast("Purchase successful.", "success");
     } catch (e) {
       console.error(e);
-      showToast("Purchase failed.", error);
+      showToast("Purchase failed.", "error");
     }
   }
 
@@ -565,22 +565,22 @@ document.addEventListener("DOMContentLoaded", function () {
   if (copyCodeBtn) {
     copyCodeBtn.onclick = () => {
       const code = currentRoomCode ? currentRoomCode.innerText.trim() : "";
-      if (!code) return showToast("Room code not ready yet.", error);
+      if (!code) return showToast("Room code not ready yet.", "error");
       navigator.clipboard
         .writeText(code)
-        .then(() => showToast("Room code copied!", success))
-        .catch(() => showToast("Copy failed, please copy manually.", error));
+        .then(() => showToast("Room code copied!", "success"))
+        .catch(() => showToast("Copy failed, please copy manually.", "error"));
     };
   }
   if (copyLinkBtn) {
     copyLinkBtn.onclick = () => {
       const code = currentRoomCode ? currentRoomCode.innerText.trim() : "";
-      if (!code) return showToast("Room code not ready yet.", error);
+      if (!code) return showToast("Room code not ready yet.", "error");
       const link = `${window.location.origin}${window.location.pathname}?room=${code}`;
       navigator.clipboard
         .writeText(link)
-        .then(() => showToast("Invite link copied!", success))
-        .catch(() => showToast("Copy failed, please copy manually.", error));
+        .then(() => showToast("Invite link copied!", "success"))
+        .catch(() => showToast("Copy failed, please copy manually.", "error"));
     };
   }
   const exitLobbyBtn = getEl("exitLobbyBtn");
@@ -663,12 +663,12 @@ document.addEventListener("DOMContentLoaded", function () {
       const codeVal =
         getEl("createRoomCode").value.trim().toUpperCase() ||
         Math.random().toString(36).substring(2, 6).toUpperCase();
-      if (!nameVal) return showToast("Agent Name Required", error);
+      if (!nameVal) return showToast("Agent Name Required", "error");
       try {
         const uid = await requireAuth();
         const ref = db.collection("rmcs_rooms").doc(codeVal);
         if ((await ref.get()).exists)
-          return showToast("Frequency Occupied (Code Taken)", error);
+          return showToast("Frequency Occupied (Code Taken)", "error");
         const isVip =
           currentUserData &&
           currentUserData.inventory &&
@@ -716,7 +716,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showScreen(gameScreen);
       } catch (e) {
         console.error(e);
-        showToast("Deploy Failed", error);
+        showToast("Deploy Failed", "error");
       }
     };
   }
@@ -726,12 +726,12 @@ document.addEventListener("DOMContentLoaded", function () {
     joinRoomFinal.onclick = async () => {
       const nameVal = getEl("joinPlayerName").value.trim();
       const codeVal = getEl("joinRoomCode").value.trim().toUpperCase();
-      if (!nameVal || !codeVal) return showToast("Credentials Missing", error);
+      if (!nameVal || !codeVal) return showToast("Credentials Missing", "error");
       try {
         const uid = await requireAuth();
         const ref = db.collection("rmcs_rooms").doc(codeVal);
         const snap = await ref.get();
-        if (!snap.exists) return showToast("Signal Lost (Room Not Found)", error);
+        if (!snap.exists) return showToast("Signal Lost (Room Not Found)", "error");
         const data = snap.data();
         const isVip =
           currentUserData &&
@@ -770,7 +770,7 @@ document.addEventListener("DOMContentLoaded", function () {
             await ref.update({
               pendingJoins: firebase.firestore.FieldValue.arrayUnion(pendingPlayer)
             });
-            showToast("Join request sent. Waiting for host approval.", success);
+            showToast("Join request sent. Waiting for host approval.", "success");
           }
         }
         roomId = codeVal;
@@ -778,7 +778,7 @@ document.addEventListener("DOMContentLoaded", function () {
         showScreen(gameScreen);
       } catch (e) {
         console.error(e);
-        showToast("Connection Failed", error);
+        showToast("Connection Failed", "error");
       }
     };
   }
@@ -786,7 +786,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- CHAT SENDER (USES ENCRYPTION + LIMITS) ---
   async function sendChatMessageForCurrentUser() {
     if (!roomId) {
-      showToast("No active room.", error);
+      showToast("No active room.", "error");
       return;
     }
     if (!chatInputEl) return;
@@ -807,7 +807,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const roomRef = db.collection("rmcs_rooms").doc(roomId);
       const snap = await roomRef.get();
       if (!snap.exists) {
-        showToast("Room not found.", error);
+        showToast("Room not found.", "error");
         return;
       }
       const data = snap.data() || {};
@@ -817,7 +817,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const maxForUser = isVipUser ? CHAT_VIP_LIMIT : CHAT_FREE_LIMIT;
       if (myCount >= maxForUser) {
         showToast(
-          "You reached the chat limit for this match.\nVIP operatives get extended chat capacity.", error
+          "You reached the chat limit for this match.\nVIP operatives get extended chat capacity.", "error"
         );
         return;
       }
@@ -842,7 +842,7 @@ document.addEventListener("DOMContentLoaded", function () {
       chatInputEl.value = "";
     } catch (e) {
       console.error("sendChatMessageForCurrentUser failed", e);
-      showToast("Failed to send message.", error);
+      showToast("Failed to send message.", "error");
     }
   }
 
@@ -959,7 +959,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // If you are neither player nor pending → kicked/denied
       if (!isInPlayers && !isPending) {
-        showToast("You are no longer in this room (kicked/denied or room reset).", error);
+        showToast("You are no longer in this room (kicked/denied or room reset).", "error");
         pushTerminalMessage("You are no longer a member of this room.", "warning");
         showScreen(mainMenu);
         return;
@@ -1379,7 +1379,7 @@ document.addEventListener("DOMContentLoaded", function () {
           rebootBtn.innerText = "REBOOT SYSTEM";
           pushTerminalMessage(
             "Reboot failed. Check console / Firestore rules.",
-            "error"
+            error
           );
         }
       });
@@ -1689,7 +1689,7 @@ document.addEventListener("DOMContentLoaded", function () {
   if (openHistoryBtn && historyModal && historyContent) {
     openHistoryBtn.onclick = () => {
       if (!roomId) {
-        showToast("No active room log.", error);
+        showToast("No active room log.", "error");
         return;
       }
   
