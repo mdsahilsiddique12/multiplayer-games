@@ -155,4 +155,54 @@
         console.log(`[System Alert]: ${message}`); // Log it just in case
     };
 
+    // =========================================
+    // 5. GLOBAL LOADER (Add this to ui.js)
+    // =========================================
+    const loaderStyle = document.createElement('style');
+    loaderStyle.innerHTML = `
+        #gn-global-loader {
+            position: fixed; inset: 0; 
+            background: rgba(0, 0, 0, 0.85); 
+            backdrop-filter: blur(8px);
+            z-index: 20000;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .cyber-spinner {
+            width: 50px; height: 50px;
+            border: 3px solid transparent;
+            border-top: 3px solid var(--neon-blue, #00f3ff);
+            border-right: 3px solid var(--neon-blue, #00f3ff);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            box-shadow: 0 0 15px var(--neon-blue, #00f3ff);
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loader-text {
+            margin-top: 15px; font-family: 'Orbitron', sans-serif; 
+            color: #fff; letter-spacing: 2px; font-size: 0.9rem;
+            animation: pulseText 1.5s infinite;
+        }
+        @keyframes pulseText { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    `;
+    document.head.appendChild(loaderStyle);
+
+    // Create Loader Elements
+    const loaderContainer = document.createElement('div');
+    loaderContainer.id = 'gn-global-loader';
+    loaderContainer.innerHTML = `
+        <div class="cyber-spinner"></div>
+        <div class="loader-text" id="gn-loader-text">PROCESSING DATA...</div>
+    `;
+    document.body.appendChild(loaderContainer);
+
+    // Expose Functions
+    window.showLoading = function(text = "PROCESSING...") {
+        document.getElementById('gn-loader-text').innerText = text;
+        document.getElementById('gn-global-loader').style.display = 'flex';
+    };
+
+    window.hideLoading = function() {
+        document.getElementById('gn-global-loader').style.display = 'none';
+    };
+
 })();
