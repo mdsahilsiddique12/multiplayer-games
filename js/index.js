@@ -59,41 +59,49 @@ window.closeUpgradeModal = function() {
 };
 
 // --- UPGRADE LOGIC (BUY PLAN) ---
-window.buyPlan = function(plan) {
+window.buyPlan = async function(plan) {
     const user = firebase.auth().currentUser;
     if (!user) return alert("Please login first.");
-    
-    // Use local instance to prevent collision
     const db = firebase.firestore();
-    
-    // Define Plan Perks
-    let coins = 0;
-    let xp = 0;
-    let badge = 'rookie';
-    
-    if(plan === 'rookie') { coins = 500; xp = 500; badge = 'bronze'; }
-    if(plan === 'elite') { coins = 2500; xp = 2000; badge = 'silver'; }
-    if(plan === 'legendary') { coins = 10000; xp = 5000; badge = 'gold'; }
 
-    if(confirm(`Confirm upgrade to ${plan.toUpperCase()} tier?`)) {
+    // Define costs/perks
+    const plans = {
+        'rookie': { cost: 0, coins: 500, xp: 500, badge: 'bronze' }, // Assuming free or paid elsewhere
+        'elite': { cost: 89, coins: 2500, xp: 2000, badge: 'silver' },
+        'legendary': { cost: 149, coins: 10000, xp: 5000, badge: 'gold' }
+    };
+    
+    const selected = plans[plan];
+    if(!selected) return;
+
+    if(confirm(`Confirm upgrade to ${plan.toUpperCase()}?`)) {
         const userRef = db.collection('users').doc(user.uid);
-        
-        userRef.update({
-            plan: plan,
-            badge: badge,
-            coins: firebase.firestore.FieldValue.increment(coins),
-            xp: firebase.firestore.FieldValue.increment(xp),
-            lastUpgrade: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => {
+
+        try {
+            await db.runTransaction(async (transaction) => {
+                const doc = await transaction.get(userRef);
+                if (!doc.exists) throw "User profile missing.";
+                
+                // HERE: Add logic to check if they actually paid 
+                // (Since you don't have a payment gateway integrated in the code provided,
+                // we proceed with the update logic).
+                
+                transaction.update(userRef, {
+                    plan: plan,
+                    badge: selected.badge,
+                    coins: firebase.firestore.FieldValue.increment(selected.coins),
+                    xp: firebase.firestore.FieldValue.increment(selected.xp),
+                    lastUpgrade: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
             alert(`SUCCESS! You are now a ${plan.toUpperCase()} Agent.`);
-            window.closeUpgradeModal();
             window.location.reload();
-        }).catch(e => {
-            alert("Transaction Failed: " + e.message);
-        });
+        } catch (e) {
+            console.error(e);
+            alert("Transaction Failed: " + e);
+        }
     }
 };
-
 // ===========================================================
 // EVENT LISTENERS (Runs when page loads)
 // ===========================================================
