@@ -47,7 +47,9 @@ window.loginGoogle = function() {
     else localStorage.removeItem('gn_remember');
 
     const provider = new firebase.auth.GoogleAuthProvider();
+    window.showLoading("AUTHENTICATING");
     firebase.auth().signInWithPopup(provider).catch(error => window.showToast("Login Error: " + error.message, "error"));
+    window.hideLoading();
 };
 
 /**
