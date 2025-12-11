@@ -659,6 +659,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const createRoomFinal = getEl("createRoomFinal");
   if (createRoomFinal) {
     createRoomFinal.onclick = async () => {
+      window.showLoading("DEPLOYING SERVER...");
       const nameVal = getEl("createPlayerName").value.trim();
       const codeVal =
         getEl("createRoomCode").value.trim().toUpperCase() ||
@@ -711,10 +712,12 @@ document.addEventListener("DOMContentLoaded", function () {
           chat: [],             // NEW: encrypted chat array
           chatMessageCounts: {} // NEW: per-player message counts
         });
+        window.hideLoading(); //
         roomId = codeVal;
         listenToRoom(roomId);
         showScreen(gameScreen);
       } catch (e) {
+        window.hideLoading();
         console.error(e);
         showToast("Deploy Failed", "error");
       }
@@ -724,6 +727,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const joinRoomFinal = getEl("joinRoomFinal");
   if (joinRoomFinal) {
     joinRoomFinal.onclick = async () => {
+      window.showLoading("DEPLOYING SERVER...");
       const nameVal = getEl("joinPlayerName").value.trim();
       const codeVal = getEl("joinRoomCode").value.trim().toUpperCase();
       if (!nameVal || !codeVal) return showToast("Credentials Missing", "error");
@@ -770,6 +774,7 @@ document.addEventListener("DOMContentLoaded", function () {
             await ref.update({
               pendingJoins: firebase.firestore.FieldValue.arrayUnion(pendingPlayer)
             });
+            window.hideLoading();
             showToast("Join request sent. Waiting for host approval.", "success");
           }
         }
@@ -777,6 +782,7 @@ document.addEventListener("DOMContentLoaded", function () {
         listenToRoom(roomId);
         showScreen(gameScreen);
       } catch (e) {
+        window.hideLoading();
         console.error(e);
         showToast("Connection Failed", "error");
       }
