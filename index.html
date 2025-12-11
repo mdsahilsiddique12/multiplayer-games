@@ -435,18 +435,28 @@
 
   <!-- AUTH MODAL -->
   <div id="authModal" class="modal-overlay fixed inset-0 hidden z-[100] flex items-center justify-center p-4">
-    <div class="bg-[#0a0a15] border-2 border-neon-blue p-10 rounded-xl max-w-sm w-full text-center shadow-[0_0_60px_rgba(0,243,255,0.15)] tactical-border">
-      <h2 class="font-cyber text-3xl text-white mb-8 tracking-widest">IDENTIFICATION</h2>
+    <div class="bg-[#0a0a15] border-2 border-neon-blue p-10 rounded-xl max-w-sm w-full text-center shadow-[0_0_60px_rgba(0,243,255,0.15)] tactical-border relative">
+      
+      <h2 class="font-cyber text-3xl text-white mb-6 tracking-widest">IDENTIFICATION</h2>
       
       <button onclick="loginGoogle()" class="w-full bg-white text-black font-bold font-cyber py-4 rounded mb-4 flex items-center justify-center gap-3 hover:bg-gray-200 transition shadow-lg">
         <i class="fa-brands fa-google text-xl"></i> ACCESS VIA GOOGLE
       </button>
       
       <div class="my-6 border-t border-gray-800"></div>
-
-      <button onclick="loginGuest()" class="text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition">
+  
+      <button onclick="loginGuest()" class="text-gray-500 hover:text-white text-xs font-bold uppercase tracking-[0.2em] transition mb-6">
         [ Continue as Guest ]
       </button>
+  
+      <div class="flex items-center justify-center gap-2 mt-4 cursor-pointer group" onclick="toggleRememberMe()">
+        <div id="rememberBox" class="w-4 h-4 border border-neon-blue rounded flex items-center justify-center transition group-hover:bg-neon-blue/20">
+          <i id="rememberIcon" class="fa-solid fa-check text-neon-blue text-[10px] hidden"></i>
+        </div>
+        <span class="text-gray-400 text-xs font-mono tracking-wider group-hover:text-white select-none">REMEMBER DEVICE</span>
+        <input type="checkbox" id="rememberMeInput" class="hidden">
+      </div>
+  
     </div>
   </div>
 
