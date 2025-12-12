@@ -20,11 +20,11 @@ const SonicCore = {
         // Setup BGM
         if(this.sounds.bgm) {
             this.sounds.bgm.loop = true;
-            this.sounds.bgm.volume = 0.01; // Low volume for background ambience
+            this.sounds.bgm.volume = 0.001; // Low volume for background ambience
         }
 
         if(this.sounds.click) {
-            this.sounds.bgm.volume = 0.00; // Low volume for background ambience
+            this.sounds.click.volume = 0.0009; // Low volume for background ambience
         }
         // 1. Check if user previously muted
         if (this.muted) {
