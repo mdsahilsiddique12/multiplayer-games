@@ -20,7 +20,7 @@ const SonicCore = {
         // Setup BGM
         if(this.sounds.bgm) {
             this.sounds.bgm.loop = true;
-            this.sounds.bgm.volume = 0.001; // Low volume for background ambience
+            this.sounds.bgm.volume = 0.01; // Low volume for background ambience
         }
 
         if(this.sounds.click) {
