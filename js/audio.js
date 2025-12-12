@@ -23,6 +23,9 @@ const SonicCore = {
             this.sounds.bgm.volume = 0.01; // Low volume for background ambience
         }
 
+        if(this.sounds.click) {
+            this.sounds.bgm.volume = 0.05; // Low volume for background ambience
+        }
         // 1. Check if user previously muted
         if (this.muted) {
             console.log("Audio initialized in MUTED state.");
