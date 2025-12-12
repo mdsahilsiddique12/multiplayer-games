@@ -7,7 +7,7 @@ const SonicCore = {
         click: new Audio('sounds/bubble.mp3'), // You already reference this in rmcs.js
         success: new Audio('sounds/sabash.mp3'),
         error: new Audio('sounds/failure.mp3'),
-        bgm: new Audio('https://res.cloudinary.com/derz1fxtd/raw/upload/v1765544812/pgJarEKvDpM_kafpsl.mp3')
+        bgm: new Audio('https://res.cloudinary.com/derz1fxtd/video/upload/v1765544812/pgJarEKvDpM_kafpsl.mp3')
     },
 
     init: function() {
