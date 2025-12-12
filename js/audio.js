@@ -24,7 +24,7 @@ const SonicCore = {
         }
 
         if(this.sounds.click) {
-            this.sounds.bgm.volume = 0.05; // Low volume for background ambience
+            this.sounds.bgm.volume = 0.00; // Low volume for background ambience
         }
         // 1. Check if user previously muted
         if (this.muted) {
