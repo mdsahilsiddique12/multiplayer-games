@@ -13,7 +13,7 @@ const SonicCore = {
     init: function() {
         // Setup BGM
         this.sounds.bgm.loop = true;
-        this.sounds.bgm.volume = 0.3; // Low volume for background
+        this.sounds.bgm.volume = 0.09; // Low volume for background
 
         // Apply Mute State
         this.applyMuteState();
