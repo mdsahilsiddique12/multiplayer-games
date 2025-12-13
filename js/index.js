@@ -47,9 +47,7 @@ window.loginGoogle = function() {
     else localStorage.removeItem('gn_remember');
 
     const provider = new firebase.auth.GoogleAuthProvider();
-    window.showLoading("AUTHENTICATING");
     firebase.auth().signInWithPopup(provider).catch(error => window.showToast("Login Error: " + error.message, "error"));
-    window.hideLoading();
 };
 
 /**
@@ -65,10 +63,8 @@ window.loginGuest = function() {
     // 2. Check if we already have a session (Firebase persists by default)
     const user = firebase.auth().currentUser;
 
-    if (user && user.isAnonymous) {
-        // >>> CRITICAL: REUSE EXISTING ACCOUNT <<<
-        // The user is technically already logged in from a previous session.
-        // We just close the modal to "Resume" that session.
+    if (user) {
+        // >>> CRITICAL FIX: IF USER EXISTS, DO NOT CREATE NEW ONE <<<
         window.showToast("Resuming secure guest session...", "success");
         closeAuthModal();
     } else {
@@ -111,8 +107,7 @@ window.launchGame = function(page) {
     window.location.href = page;
 };
 
-// ... (Keep your window.buyPlan and window.openUpgradeModal functions here as they were) ...
-// Copy your existing buyPlan logic here or ask if you need it repasted.
+// Copy your existing buyPlan logic here
 window.openUpgradeModal = function() {
     document.getElementById('upgradeModal').classList.remove('hidden');
     document.getElementById('upgradeModal').style.display = 'flex';
@@ -163,7 +158,6 @@ document.addEventListener("DOMContentLoaded", function() {
             } else {
                 // Scenario B: "Remember Me" is OFF.
                 // Even though Firebase has them logged in, we FORCE the modal open.
-                // However, we do NOT sign them out (to preserve the Guest ID).
                 window.openAuthModal();
                 
                 // Pre-check the checkbox if they toggle it now
@@ -172,6 +166,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
 
             // Database Sync (Coins/Profile)
+            // Only create profile if it DOES NOT exist
             const userRef = db.collection('users').doc(user.uid);
             try {
                 let doc = await userRef.get();
@@ -193,7 +188,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
         } else {
             // >>> NO SESSION FOUND <<<
-            // Force Open Modal
+            // DO NOT CALL signInAnonymously HERE!
+            // Just show the modal and wait for user input.
             window.openAuthModal();
 
             // Reset UI
