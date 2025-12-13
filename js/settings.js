@@ -5,7 +5,7 @@
         /* --- 1. SETTINGS TRIGGER (Gear Icon) --- */
         #gn-settings-trigger {
             position: fixed; 
-            top: 20px; 
+            bottom: 20px; 
             left: 20px; /* MOVED TO LEFT */
             z-index: 100001; /* Above everything (including CRT overlays) */
             width: 45px; height: 45px;
