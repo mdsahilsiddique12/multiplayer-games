@@ -1,4 +1,4 @@
-// Firebase config
+
 const firebaseConfig = {
   apiKey: "AIzaSyBs8Og7h-YLS3GsrYxDmWYl-468x53N8Fw",
   authDomain: "my-game-1a8b5.firebaseapp.com",
