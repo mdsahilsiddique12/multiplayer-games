@@ -1,44 +1,54 @@
 (function() {
-    // 1. INJECT CSS (PREMIUM CYBERPUNK THEME)
+    // 1. INJECT CSS (PREMIUM CYBERPUNK THEME + ICON FIX)
     const style = document.createElement('style');
     style.innerHTML = `
-        /* --- 1. SETTINGS TRIGGER (Gear Icon) --- */
         /* --- 1. SETTINGS TRIGGER (Gear Icon) --- */
         #gn-settings-trigger {
             position: fixed; 
             bottom: 20px; 
             left: 20px; 
             z-index: 2147483647 !important; /* Max visibility */
-            width: 45px; height: 45px;
+            width: 50px; height: 50px;     /* Slightly larger for easier clicking */
             
             /* --- ORANGE THEME --- */
-            background: rgba(10, 5, 0, 0.8); /* Dark background */
-            border: 1px solid #ffae00;       /* Orange Border */
-            color: #ffae00;                  /* Orange Icon */
-            box-shadow: 0 0 15px rgba(255, 174, 0, 0.4); /* Orange Glow */
+            background: rgba(10, 5, 0, 0.85); 
+            border: 2px solid #ffae00;       
+            color: #ffae00;                  
+            box-shadow: 0 0 15px rgba(255, 174, 0, 0.4); 
             
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; 
             transition: all 0.3s;
             backdrop-filter: blur(5px);
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             
+            /* FORCE GPU LAYER */
             transform: translateZ(9999px); 
         }
 
+        /* >>> CRITICAL FIX: FORCE FONT FAMILY FOR THE ICON <<< */
+        #gn-settings-trigger i {
+            font-family: "Font Awesome 6 Free", "FontAwesome" !important;
+            font-weight: 900 !important;
+            font-style: normal !important;
+            display: inline-block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
         #gn-settings-trigger:hover { 
-            background: #ffae00;       /* Orange Fill */
-            color: #000;               /* Black Icon */
-            box-shadow: 0 0 25px #ffae00; /* Strong Orange Glow */
+            background: #ffae00;       
+            color: #000;               
+            box-shadow: 0 0 30px #ffae00; 
             transform: rotate(90deg) scale(1.1);
         }
 
         /* --- 2. MODAL OVERLAY --- */
         #gn-settings-modal {
             position: fixed; inset: 0; 
-            background: rgba(0, 0, 0, 0.92); /* Darker backdrop */
-            z-index: 100002; 
+            background: rgba(0, 0, 0, 0.95); 
+            z-index: 2147483648; /* Above the button */
             display: none; 
             align-items: center; justify-content: center;
             backdrop-filter: blur(12px);
@@ -48,18 +58,17 @@
         /* --- 3. MAIN SETTINGS BOX --- */
         .gn-settings-box {
             width: 95%; max-width: 800px; 
-            height: 85vh; /* TALLER HEIGHT */
+            height: 85vh; 
             max-height: 700px;
             background: linear-gradient(135deg, #050510 0%, #0a0a15 100%);
-            border: 1px solid rgba(0, 243, 255, 0.3);
+            border: 1px solid rgba(255, 174, 0, 0.3); /* Orange Tint Border */
             display: flex; flex-direction: column; 
-            box-shadow: 0 0 80px rgba(0, 243, 255, 0.15), inset 0 0 30px rgba(0,0,0,0.8);
+            box-shadow: 0 0 80px rgba(255, 174, 0, 0.1), inset 0 0 30px rgba(0,0,0,0.8);
             border-radius: 16px;
             overflow: hidden;
             position: relative;
         }
         
-        /* Mobile Layout Adjustment */
         @media (min-width: 768px) {
             .gn-settings-box { flex-direction: row; }
         }
@@ -79,7 +88,7 @@
                 flex-direction: column; 
                 border-bottom: none; 
                 border-right: 1px solid #333;
-                padding-top: 60px; /* Space for title */
+                padding-top: 60px; 
             }
         }
 
@@ -105,9 +114,9 @@
         
         .gn-tab-btn.active { 
             color: #000; 
-            background: var(--neon-blue, #00f3ff); 
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
-            border-color: var(--neon-blue, #00f3ff);
+            background: #ffae00; 
+            box-shadow: 0 0 15px rgba(255, 174, 0, 0.4);
+            border-color: #ffae00;
         }
 
         /* --- 5. CONTENT AREA --- */
@@ -116,10 +125,9 @@
             padding: 40px; 
             overflow-y: auto; 
             position: relative; 
-            background: radial-gradient(circle at top right, rgba(0, 243, 255, 0.05), transparent 40%);
+            background: radial-gradient(circle at top right, rgba(255, 174, 0, 0.05), transparent 40%);
         }
         
-        /* --- CUSTOM SCROLLBAR (NEON) --- */
         .gn-settings-content::-webkit-scrollbar { width: 6px; }
         .gn-settings-content::-webkit-scrollbar-track { background: #050510; }
         .gn-settings-content::-webkit-scrollbar-thumb { 
@@ -127,9 +135,8 @@
             border-radius: 3px; 
             transition: background 0.3s;
         }
-        .gn-settings-content::-webkit-scrollbar-thumb:hover { background: var(--neon-blue, #00f3ff); }
+        .gn-settings-content::-webkit-scrollbar-thumb:hover { background: #ffae00; }
 
-        /* Animation for Tabs */
         .gn-tab-pane { display: none; animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .gn-tab-pane.active { display: block; }
         @keyframes slideIn { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:translateX(0); } }
@@ -148,10 +155,10 @@
         .gn-profile-header { display: flex; align-items: center; gap: 25px; margin-bottom: 30px; }
         .gn-avatar-circle { 
             width: 80px; height: 80px; border-radius: 50%; 
-            border: 2px solid var(--neon-blue, #00f3ff); 
+            border: 2px solid #ffae00; 
             display: flex; align-items: center; justify-content: center; 
             font-size: 2.5rem; background: #000; 
-            box-shadow: 0 0 25px rgba(0,243,255,0.15); 
+            box-shadow: 0 0 25px rgba(255, 174, 0, 0.15); 
         }
 
         .gn-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
@@ -161,9 +168,8 @@
             padding: 15px; border-radius: 12px; 
             transition: 0.3s;
         }
-        .gn-stat-box:hover { border-color: var(--neon-blue, #00f3ff); background: rgba(0, 243, 255, 0.02); }
+        .gn-stat-box:hover { border-color: #ffae00; background: rgba(255, 174, 0, 0.02); }
 
-        /* Sliders */
         .gn-slider-row { 
             background: rgba(0,0,0,0.3); border: 1px solid #333; 
             padding: 20px; border-radius: 12px; margin-bottom: 20px; 
@@ -174,13 +180,12 @@
         }
         .gn-range::-webkit-slider-thumb { 
             -webkit-appearance: none; width: 18px; height: 18px; 
-            background: var(--neon-blue, #00f3ff); border-radius: 50%; 
-            cursor: pointer; box-shadow: 0 0 15px var(--neon-blue, #00f3ff); 
+            background: #ffae00; border-radius: 50%; 
+            cursor: pointer; box-shadow: 0 0 15px #ffae00; 
             transition: transform 0.2s;
         }
         .gn-range::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
-        /* Logout Button */
         .gn-logout-btn {
             width: 100%; padding: 16px; margin-top: 30px;
             border: 1px solid #ef4444; color: #ef4444; 
@@ -210,7 +215,7 @@
     `;
     document.head.appendChild(style);
 
-    // 2. CREATE HTML STRUCTURE
+    // 2. CREATE HTML STRUCTURE (Using fa-cog instead of fa-gear for better compatibility)
     const modalHtml = `
     <div id="gn-settings-trigger" onclick="openSettings()">
         <i class="fa-solid fa-gear"></i>
@@ -243,7 +248,7 @@
                     <div class="gn-profile-header">
                         <div class="gn-avatar-circle" id="st-avatar">👤</div>
                         <div>
-                            <div class="text-xs text-neon-blue font-bold tracking-[0.3em] mb-1">ONLINE</div>
+                            <div class="text-xs text-[#ffae00] font-bold tracking-[0.3em] mb-1">ONLINE</div>
                             <h2 class="text-3xl text-white font-cyber tracking-wide" id="st-username">LOADING...</h2>
                             <div class="tag-badge" id="st-badge">ROOKIE</div>
                         </div>
@@ -262,7 +267,7 @@
 
                     <div class="p-5 border border-dashed border-gray-700 rounded-lg bg-black/20">
                         <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Unique Identifier</div>
-                        <div class="font-mono text-neon-blue text-sm select-all" id="st-uid">---</div>
+                        <div class="font-mono text-[#ffae00] text-sm select-all" id="st-uid">---</div>
                         <div class="text-[10px] text-gray-500 uppercase tracking-widest mt-4 mb-2">Service Record</div>
                         <div class="font-mono text-gray-300 text-sm" id="st-joined">---</div>
                     </div>
@@ -278,14 +283,14 @@
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" id="st-mute-check" class="sr-only peer" onchange="toggleMuteSetting(this)">
-                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-neon-blue"></div>
+                            <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ffae00]"></div>
                         </label>
                     </div>
 
                     <div class="gn-slider-row">
                         <div class="flex justify-between mb-2">
                             <span class="text-sm text-gray-300 font-bold tracking-wider">MUSIC (BGM)</span>
-                            <span id="vol-bgm-val" class="text-sm text-neon-blue font-mono">30%</span>
+                            <span id="vol-bgm-val" class="text-sm text-[#ffae00] font-mono">30%</span>
                         </div>
                         <input type="range" class="gn-range" min="0" max="1" step="0.01" id="vol-bgm" oninput="updateVol('bgm', this.value)">
                     </div>
@@ -293,7 +298,7 @@
                     <div class="gn-slider-row">
                         <div class="flex justify-between mb-2">
                             <span class="text-sm text-gray-300 font-bold tracking-wider">SOUND EFFECTS (SFX)</span>
-                            <span id="vol-sfx-val" class="text-sm text-neon-blue font-mono">60%</span>
+                            <span id="vol-sfx-val" class="text-sm text-[#ffae00] font-mono">60%</span>
                         </div>
                         <input type="range" class="gn-range" min="0" max="1" step="0.01" id="vol-sfx" oninput="updateVol('sfx', this.value)">
                     </div>
@@ -304,14 +309,14 @@
                     
                     <div class="grid gap-4">
                         <a href="tos.html" class="flex items-center p-4 border border-gray-800 bg-gray-900/50 hover:bg-gray-800 transition rounded-lg text-gray-300 no-underline group">
-                            <i class="fa-solid fa-file-contract text-xl mr-4 text-gray-500 group-hover:text-neon-blue"></i>
+                            <i class="fa-solid fa-file-contract text-xl mr-4 text-gray-500 group-hover:text-[#ffae00]"></i>
                             <div>
                                 <div class="font-bold text-white">Terms of Service</div>
                                 <div class="text-xs text-gray-500">Review legal parameters</div>
                             </div>
                         </a>
                         <a href="privacy.html" class="flex items-center p-4 border border-gray-800 bg-gray-900/50 hover:bg-gray-800 transition rounded-lg text-gray-300 no-underline group">
-                            <i class="fa-solid fa-shield-halved text-xl mr-4 text-gray-500 group-hover:text-neon-blue"></i>
+                            <i class="fa-solid fa-shield-halved text-xl mr-4 text-gray-500 group-hover:text-[#ffae00]"></i>
                             <div>
                                 <div class="font-bold text-white">Privacy Policy</div>
                                 <div class="text-xs text-gray-500">Data protection protocols</div>
@@ -350,71 +355,4 @@ window.openSettings = async function() {
     document.getElementById('vol-bgm').value = SonicCore.bgmVolume;
     document.getElementById('vol-sfx').value = SonicCore.sfxVolume;
     document.getElementById('vol-bgm-val').innerText = Math.round(SonicCore.bgmVolume * 100) + "%";
-    document.getElementById('vol-sfx-val').innerText = Math.round(SonicCore.sfxVolume * 100) + "%";
-    
-    // Fetch Profile Data
-    const user = firebase.auth().currentUser;
-    if(user) {
-        document.getElementById('st-username').innerText = (user.displayName || "AGENT").toUpperCase();
-        document.getElementById('st-uid').innerText = user.uid;
-        
-        try {
-            const doc = await firebase.firestore().collection('users').doc(user.uid).get();
-            if(doc.exists) {
-                const d = doc.data();
-                document.getElementById('st-coins').innerText = (d.coins || 0).toLocaleString();
-                document.getElementById('st-xp').innerText = (d.xp || 0).toLocaleString();
-                document.getElementById('st-badge').innerText = (d.badge || "ROOKIE").toUpperCase();
-                
-                if(d.createdAt) {
-                    const date = d.createdAt.toDate ? d.createdAt.toDate() : new Date();
-                    document.getElementById('st-joined').innerText = date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                }
-            }
-        } catch(e) { console.log("Stats fetch error", e); }
-    } else {
-        document.getElementById('st-username').innerText = "GUEST / OFFLINE";
-    }
-};
-
-window.closeSettings = function() {
-    document.getElementById('gn-settings-modal').style.display = 'none';
-};
-
-window.switchTab = function(tabName) {
-    // Buttons Active State
-    document.querySelectorAll('.gn-tab-btn').forEach(b => b.classList.remove('active'));
-    event.currentTarget.classList.add('active'); // Use currentTarget to handle button clicks accurately
-    
-    // Show correct Pane
-    document.querySelectorAll('.gn-tab-pane').forEach(p => p.classList.remove('active'));
-    document.getElementById('tab-' + tabName).classList.add('active');
-
-    // >>> SCROLL RESET LOGIC <<<
-    // This forces the content area back to the top whenever you switch tabs
-    document.getElementById('gn-content-area').scrollTop = 0;
-};
-
-window.updateVol = function(type, val) {
-    if(type === 'bgm') {
-        SonicCore.setBGMVolume(val);
-        document.getElementById('vol-bgm-val').innerText = Math.round(val*100) + "%";
-    }
-    if(type === 'sfx') {
-        SonicCore.setSFXVolume(val);
-        document.getElementById('vol-sfx-val').innerText = Math.round(val*100) + "%";
-    }
-};
-
-window.toggleMuteSetting = function(checkbox) {
-    const isMuted = !checkbox.checked;
-    SonicCore.toggleMute(isMuted);
-    window.showToast(isMuted ? "Audio System Muted" : "Audio System Online", isMuted ? "warning" : "success");
-};
-
-window.triggerLogout = function() {
-    if(confirm("Confirm Disconnect? This will end your current session.")) {
-        localStorage.removeItem('gn_remember');
-        firebase.auth().signOut().then(() => window.location.reload());
-    }
-};
+    document
