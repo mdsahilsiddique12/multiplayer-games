@@ -15,10 +15,6 @@ firebase.initializeApp(firebaseConfig);
 // Initialize Firestore
 const db = firebase.firestore();
 
-// Sign in anonymously
-firebase.auth().signInAnonymously().catch((error) => {
-  console.error("Auth error:", error);
-});
 
 // Listen for authentication state changes
 firebase.auth().onAuthStateChanged((user) => {
