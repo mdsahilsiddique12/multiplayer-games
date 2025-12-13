@@ -12,9 +12,6 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
-// Initialize Firestore
-const db = firebase.firestore();
-
 
 // Listen for authentication state changes
 firebase.auth().onAuthStateChanged((user) => {
