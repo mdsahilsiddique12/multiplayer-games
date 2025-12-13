@@ -18,6 +18,8 @@
             backdrop-filter: blur(5px);
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
             font-size: 1.2rem;
+
+            transform: translateZ(9999px);
         }
         #gn-settings-trigger:hover { 
             background: var(--neon-blue, #00f3ff); 
