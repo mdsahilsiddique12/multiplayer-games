@@ -1,35 +1,33 @@
-console.log("Index.js initializing...");
+console.log("[1] Index.js initializing...");
 
 document.addEventListener("DOMContentLoaded", function() {
+    console.log("[2] DOM Content Loaded");
     
     const db = firebase.firestore();
 
     // -------------------------------------------------------------
-    // 1. HANDLE REDIRECT RESULT (The "Catch" Logic)
+    // 1. HANDLE REDIRECT RESULT (Must come before Auth State)
     // -------------------------------------------------------------
-    // This looks for a user RETURNING from Google
     firebase.auth().getRedirectResult()
         .then((result) => {
+            console.log("[3] Checking Redirect Result...");
             if (result.user) {
-                console.log("✅ Redirect Login CAUGHT! User:", result.user.uid);
-                // The onAuthStateChanged will handle the UI updates automatically
+                console.log("✅ [SUCCESS] Redirect Login CAUGHT! User:", result.user.uid);
+                window.showToast("Login Successful!", "success");
             } else {
-                console.log("ℹ️ Page loaded normally (no redirect return detected).");
+                console.log("ℹ️ [INFO] No redirect data found (Normal page load).");
             }
         })
         .catch((error) => {
-            console.error("❌ Redirect Error:", error.code, error.message);
-            if (error.code === 'auth/unauthorized-domain') {
-                window.showToast("CRITICAL: Domain not authorized in Firebase Console!", "error");
-            } else {
-                window.showToast("Login Failed: " + error.message, "error");
-            }
+            console.error("❌ [ERROR] Redirect Failed:", error.code, error.message);
+            window.showToast("Login Failed: " + error.message, "error");
         });
 
     // -------------------------------------------------------------
-    // 2. AUTH STATE MONITOR (The Core Logic)
+    // 2. AUTH STATE MONITOR
     // -------------------------------------------------------------
     firebase.auth().onAuthStateChanged(async (user) => {
+        console.log("[4] Auth State Changed Event Fired");
         
         // UI Elements
         const loginBtn = document.getElementById('loginBtn');
@@ -39,9 +37,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (user) {
             // >>> USER IS LOGGED IN <<<
-            console.log("✅ User Session Active:", user.uid);
+            console.log("✅ [STATE] User Session Active:", user.uid);
 
-            // 1. Update UI
+            // Update UI
             if(loginBtn) loginBtn.classList.add('hidden');
             if(userInfo) {
                 userInfo.classList.remove('hidden');
@@ -49,10 +47,10 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             if(userNameEl) userNameEl.innerText = (user.displayName || "AGENT").toUpperCase();
 
-            // 2. Close Modal
+            // Close Modal
             closeAuthModal();
 
-            // 3. Database Sync (Create Profile if New)
+            // Database Sync
             const userRef = db.collection('users').doc(user.uid);
             try {
                 let doc = await userRef.get();
@@ -71,7 +69,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         } else {
             // >>> USER IS LOGGED OUT <<<
-            console.log("🚫 No active session.");
+            console.log("🚫 [STATE] No active session (Guest or User).");
 
             // Reset UI
             if(userInfo) {
@@ -80,8 +78,9 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             if(loginBtn) loginBtn.classList.remove('hidden');
 
-            // Open Login Modal automatically
-            window.openAuthModal();
+            // Only open modal if we are NOT in the middle of a redirect check
+            // (We rely on the user clicking login to open it, to be less annoying)
+            // window.openAuthModal(); 
         }
     });
 });
@@ -90,22 +89,18 @@ document.addEventListener("DOMContentLoaded", function() {
 // GLOBAL FUNCTIONS
 // ===========================================================
 
-/**
- * GOOGLE LOGIN (PERSISTENCE FIX)
- * Forces the browser to remember the login attempt across reloads.
- */
 window.loginGoogle = function() {
+    console.log("🚀 Starting Google Login (Redirect Mode)...");
     saveRememberMePref();
     
-    // >>> THE FIX: FORCE LOCAL PERSISTENCE <<<
+    // Force Local Persistence so the browser remembers across the reload
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
         .then(() => {
             const provider = new firebase.auth.GoogleAuthProvider();
-            // Use Redirect
             return firebase.auth().signInWithRedirect(provider);
         })
         .catch((error) => {
-            console.error("Login Error:", error);
+            console.error("Login Init Error:", error);
             window.showToast("System Error: " + error.message, "error");
         });
 };
@@ -129,20 +124,18 @@ window.logoutUser = function() {
     }
 };
 
-// --- HELPER: Save Checkbox State ---
+// HELPERS
 function saveRememberMePref() {
     const checkbox = document.getElementById('rememberMeInput');
     if(checkbox && checkbox.checked) localStorage.setItem('gn_remember', 'true');
     else localStorage.removeItem('gn_remember');
 }
 
-// UI HANDLERS
 window.openAuthModal = function() {
     const modal = document.getElementById('authModal');
     if(modal) {
         modal.classList.remove('hidden');
         modal.style.display = 'flex';
-        // Restore Checkbox
         const savedPref = localStorage.getItem('gn_remember') === 'true';
         const checkbox = document.getElementById('rememberMeInput');
         if(checkbox) {
@@ -185,4 +178,3 @@ window.launchGame = function(page) {
     }
     window.location.href = page;
 };
-// Add openUpgradeModal/closeUpgradeModal as needed
