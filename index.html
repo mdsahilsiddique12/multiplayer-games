@@ -379,27 +379,11 @@
     <button onclick="toggleAudio()" class="text-neon-blue border border-neon-blue px-3 py-1 rounded hover:bg-neon-blue/20 transition ml-2">
       <i id="audioIcon" class="fa-solid fa-volume-high"></i>
     </button>
-    
-    <script>
-        function toggleAudio() {
-            const isMuted = SonicCore.toggleMute();
-            const icon = document.getElementById('audioIcon');
-            icon.className = isMuted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
-            // Optional: Show toast
-            if(window.showToast) window.showToast(isMuted ? "Audio Muted" : "Audio Active", "info");
-        }
-        
-        // Set initial icon state
-        document.addEventListener("DOMContentLoaded", () => {
-             const isMuted = localStorage.getItem('gn_muted') === 'true';
-             const icon = document.getElementById('audioIcon');
-             if(icon) icon.className = isMuted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
-        });
-    </script>
+
 
     <div class="flex items-center gap-4">
       <!-- Added onclick="logoutUser()" and cursor-pointer -->
-      <div id="userInfo" onclick="logoutUser()" class="hidden flex-col items-end border-r border-gray-700 pr-4 cursor-pointer hover:opacity-80 transition" title="Click to Logout">
+      <div id="userInfo" class="hidden flex-col items-end border-r border-gray-700 pr-4 cursor-pointer hover:opacity-80 transition" title="Click to Logout">
         <span id="userName" class="text-neon-blue font-bold text-sm tracking-wider">AGENT</span>
         <span id="userCoins" class="text-yellow-400 text-xs font-mono font-bold">0 CR</span>
       </div>
@@ -541,7 +525,12 @@
   <!-- LOAD INDEX LOGIC -->
   <script src="js/index.js"></script>
 
-<script src="js/ui.js"></script> 
+<script src="js/firebase-config.js"></script>
+
+<script src="js/ui.js"></script>
+
 <script src="js/audio.js"></script>
+
+<script src="js/settings.js"></script>
 </body>
 </html>
