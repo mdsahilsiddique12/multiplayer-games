@@ -3,28 +3,34 @@
     const style = document.createElement('style');
     style.innerHTML = `
         /* --- 1. SETTINGS TRIGGER (Gear Icon) --- */
+        /* --- 1. SETTINGS TRIGGER (Gear Icon) --- */
         #gn-settings-trigger {
             position: fixed; 
             bottom: 20px; 
-            left: 20px; /* MOVED TO LEFT */
-            z-index: 100001; /* Above everything (including CRT overlays) */
+            left: 20px; 
+            z-index: 2147483647 !important; /* Max visibility */
             width: 45px; height: 45px;
-            background: rgba(5, 5, 16, 0.8);
-            border: 1px solid var(--neon-blue, #00f3ff);
-            color: var(--neon-blue, #00f3ff);
+            
+            /* --- ORANGE THEME --- */
+            background: rgba(10, 5, 0, 0.8); /* Dark background */
+            border: 1px solid #ffae00;       /* Orange Border */
+            color: #ffae00;                  /* Orange Icon */
+            box-shadow: 0 0 15px rgba(255, 174, 0, 0.4); /* Orange Glow */
+            
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer; 
+            transition: all 0.3s;
             backdrop-filter: blur(5px);
-            box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
             font-size: 1.2rem;
-
-            transform: translateZ(9999px);
+            
+            transform: translateZ(9999px); 
         }
+
         #gn-settings-trigger:hover { 
-            background: var(--neon-blue, #00f3ff); 
-            color: #000; 
-            box-shadow: 0 0 25px var(--neon-blue, #00f3ff);
+            background: #ffae00;       /* Orange Fill */
+            color: #000;               /* Black Icon */
+            box-shadow: 0 0 25px #ffae00; /* Strong Orange Glow */
             transform: rotate(90deg) scale(1.1);
         }
 
