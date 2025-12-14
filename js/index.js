@@ -1,45 +1,45 @@
-console.log("[1] Index.js initializing...");
+console.log("[1] Index.js LOADED");
 
-document.addEventListener("DOMContentLoaded", function() {
-    console.log("[2] DOM Content Loaded");
+// ===========================================================
+// 1. IMMEDIATE REDIRECT CHECK (Run this ASAP)
+// ===========================================================
+if (firebase.auth()) {
+    console.log("[2] Firebase Auth Detected - Checking Redirect...");
     
-    const db = firebase.firestore();
-
-    // -------------------------------------------------------------
-    // 1. HANDLE REDIRECT RESULT (Must come before Auth State)
-    // -------------------------------------------------------------
     firebase.auth().getRedirectResult()
         .then((result) => {
-            console.log("[3] Checking Redirect Result...");
             if (result.user) {
-                console.log("✅ [SUCCESS] Redirect Login CAUGHT! User:", result.user.uid);
+                console.log("🎉 [SUCCESS] Redirect Login Verified:", result.user.uid);
                 window.showToast("Login Successful!", "success");
+                // The onAuthStateChanged listener below will handle the UI update
             } else {
-                console.log("ℹ️ [INFO] No redirect data found (Normal page load).");
+                console.log("ℹ️ [INFO] Page loaded, but no redirect data found.");
             }
         })
         .catch((error) => {
-            console.error("❌ [ERROR] Redirect Failed:", error.code, error.message);
-            window.showToast("Login Failed: " + error.message, "error");
+            console.error("❌ [CRITICAL] Redirect Failed:", error);
+            window.showToast("Login Error: " + error.message, "error");
         });
+}
 
-    // -------------------------------------------------------------
-    // 2. AUTH STATE MONITOR
-    // -------------------------------------------------------------
+// ===========================================================
+// 2. MAIN LOGIC (Wait for page load)
+// ===========================================================
+document.addEventListener("DOMContentLoaded", function() {
+    console.log("[3] DOM Ready");
+    const db = firebase.firestore();
+
+    // AUTH STATE LISTENER
     firebase.auth().onAuthStateChanged(async (user) => {
-        console.log("[4] Auth State Changed Event Fired");
-        
-        // UI Elements
         const loginBtn = document.getElementById('loginBtn');
         const userInfo = document.getElementById('userInfo');
         const userNameEl = document.getElementById('userName');
         const userCoinsEl = document.getElementById('userCoins');
 
         if (user) {
-            // >>> USER IS LOGGED IN <<<
-            console.log("✅ [STATE] User Session Active:", user.uid);
+            console.log("✅ [STATE] User is Logged In:", user.uid);
 
-            // Update UI
+            // 1. UI Updates
             if(loginBtn) loginBtn.classList.add('hidden');
             if(userInfo) {
                 userInfo.classList.remove('hidden');
@@ -47,14 +47,15 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             if(userNameEl) userNameEl.innerText = (user.displayName || "AGENT").toUpperCase();
 
-            // Close Modal
+            // 2. Close Modal
             closeAuthModal();
 
-            // Database Sync
+            // 3. Sync User Profile
             const userRef = db.collection('users').doc(user.uid);
             try {
                 let doc = await userRef.get();
                 if (!doc.exists) {
+                    // Create new profile
                     await userRef.set({
                         username: user.displayName || "Agent",
                         email: user.email || "guest",
@@ -68,8 +69,7 @@ document.addEventListener("DOMContentLoaded", function() {
             } catch (e) { console.error("DB Error:", e); }
 
         } else {
-            // >>> USER IS LOGGED OUT <<<
-            console.log("🚫 [STATE] No active session (Guest or User).");
+            console.log("🚫 [STATE] User is Logged Out");
 
             // Reset UI
             if(userInfo) {
@@ -77,39 +77,37 @@ document.addEventListener("DOMContentLoaded", function() {
                 userInfo.classList.remove('flex');
             }
             if(loginBtn) loginBtn.classList.remove('hidden');
-
-            // Only open modal if we are NOT in the middle of a redirect check
-            // (We rely on the user clicking login to open it, to be less annoying)
-            // window.openAuthModal(); 
+            
+            // Open Modal
+            window.openAuthModal();
         }
     });
 });
 
 // ===========================================================
-// GLOBAL FUNCTIONS
+// 3. SIMPLIFIED LOGIN FUNCTION
 // ===========================================================
-
 window.loginGoogle = function() {
-    console.log("🚀 Starting Google Login (Redirect Mode)...");
-    saveRememberMePref();
+    console.log("🚀 Initiating Google Redirect...");
     
-    // Force Local Persistence so the browser remembers across the reload
-    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-        .then(() => {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            return firebase.auth().signInWithRedirect(provider);
-        })
-        .catch((error) => {
-            console.error("Login Init Error:", error);
-            window.showToast("System Error: " + error.message, "error");
-        });
+    // Save preference
+    const checkbox = document.getElementById('rememberMeInput');
+    if(checkbox && checkbox.checked) localStorage.setItem('gn_remember', 'true');
+    else localStorage.removeItem('gn_remember');
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+
+    // DIRECT REDIRECT (No complex promise chains)
+    firebase.auth().signInWithRedirect(provider);
 };
 
+// ===========================================================
+// 4. OTHER FUNCTIONS
+// ===========================================================
 window.loginGuest = function() {
-    saveRememberMePref();
     const user = firebase.auth().currentUser;
     if (user) {
-        window.showToast("Session already active.", "info");
+        window.showToast("Already logged in.", "info");
         closeAuthModal();
     } else {
         firebase.auth().signInAnonymously()
@@ -124,34 +122,29 @@ window.logoutUser = function() {
     }
 };
 
-// HELPERS
-function saveRememberMePref() {
-    const checkbox = document.getElementById('rememberMeInput');
-    if(checkbox && checkbox.checked) localStorage.setItem('gn_remember', 'true');
-    else localStorage.removeItem('gn_remember');
-}
-
+// UI Helpers
 window.openAuthModal = function() {
     const modal = document.getElementById('authModal');
     if(modal) {
         modal.classList.remove('hidden');
         modal.style.display = 'flex';
+        // Checkbox logic
         const savedPref = localStorage.getItem('gn_remember') === 'true';
         const checkbox = document.getElementById('rememberMeInput');
         if(checkbox) {
             checkbox.checked = savedPref;
-            window.toggleRememberMe(true); 
+            window.toggleRememberMe(true);
         }
     }
 };
 
-function closeAuthModal() {
+window.closeAuthModal = function() { // Added window. prefix to be safe
     const modal = document.getElementById('authModal');
     if(modal) {
         modal.classList.add('hidden');
         modal.style.display = 'none';
     }
-}
+};
 
 window.toggleRememberMe = function(forceUpdate = false) {
     const input = document.getElementById('rememberMeInput');
@@ -177,4 +170,20 @@ window.launchGame = function(page) {
         return;
     }
     window.location.href = page;
+};
+
+window.openUpgradeModal = function() {
+    const modal = document.getElementById('upgradeModal');
+    if(modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+    }
+};
+
+window.closeUpgradeModal = function() {
+    const modal = document.getElementById('upgradeModal');
+    if(modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }
 };
