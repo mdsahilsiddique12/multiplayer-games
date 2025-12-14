@@ -664,38 +664,47 @@ document.addEventListener("DOMContentLoaded", function () {
       const codeVal =
         getEl("createRoomCode").value.trim().toUpperCase() ||
         Math.random().toString(36).substring(2, 6).toUpperCase();
-      if (!nameVal) return showToast("Agent Name Required", "error");
+      
+      if (!nameVal) {
+        window.hideLoading();
+        return showToast("Agent Name Required", "error");
+      }
+
       try {
         const uid = await requireAuth();
         const ref = db.collection("rmcs_rooms").doc(codeVal);
-        if ((await ref.get()).exists)
+        if ((await ref.get()).exists) {
+          window.hideLoading();
           return showToast("Frequency Occupied (Code Taken)", "error");
-        const isVip =
+        }
+
+        // --- FIX: Force boolean using !! ---
+        const isVip = !!(
           currentUserData &&
           currentUserData.inventory &&
-          currentUserData.inventory.includes("vip_pass");
+          currentUserData.inventory.includes("vip_pass")
+        );
+
         const playerData = {
           id: uid,
           name: nameVal,
           inventory: currentUserData?.inventory || [],
-          isVip,
+          isVip: isVip, // Now guaranteed to be true or false
           nameColor: isVip ? "gold" : "white",
           roleType: "host"
         };
 
-        // --- UPDATED ROOM VISIBILITY + WAITING ROOM (RADIO + FALLBACK) ---
+        // --- UPDATED ROOM VISIBILITY ---
         const visibility = (() => {
           const radio = document.querySelector('input[name="roomVisibility"]:checked');
           if (radio && radio.value === "personal") return "personal";
-          if (roomVisibilitySelect && roomVisibilitySelect.value === "personal") return "personal";
           return "public";
         })();
+
+        // --- FIX: Ensure waitingRoomEnabled is boolean or null (never undefined) ---
         const waitingRoomEnabled =
           visibility === "personal" &&
-          (
-            (waitingRoomToggle && waitingRoomToggle.checked) ||
-            (requireApprovalCheckbox && requireApprovalCheckbox.checked)
-          );
+          !!(requireApprovalCheckbox && requireApprovalCheckbox.checked);
 
         await ref.set({
           host: uid,
@@ -706,20 +715,21 @@ document.addEventListener("DOMContentLoaded", function () {
           history: [],
           created: firebase.firestore.FieldValue.serverTimestamp(),
           maxPlayers: MAX_PLAYERS,
-          visibility,           // "public" | "personal"
-          waitingRoomEnabled,   // bool
-          pendingJoins: [],     // NEW
-          chat: [],             // NEW: encrypted chat array
-          chatMessageCounts: {} // NEW: per-player message counts
+          visibility: visibility,
+          waitingRoomEnabled: waitingRoomEnabled,
+          pendingJoins: [],
+          chat: [],
+          chatMessageCounts: {}
         });
-        window.hideLoading(); //
+
+        window.hideLoading();
         roomId = codeVal;
         listenToRoom(roomId);
         showScreen(gameScreen);
       } catch (e) {
         window.hideLoading();
         console.error(e);
-        showToast("Deploy Failed", "error");
+        showToast("Deploy Failed: " + e.message, "error");
       }
     };
   }
