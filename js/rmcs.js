@@ -737,39 +737,59 @@ document.addEventListener("DOMContentLoaded", function () {
   const joinRoomFinal = getEl("joinRoomFinal");
   if (joinRoomFinal) {
     joinRoomFinal.onclick = async () => {
-      window.showLoading("DEPLOYING SERVER...");
+      window.showLoading("CONNECTING...");
       const nameVal = getEl("joinPlayerName").value.trim();
       const codeVal = getEl("joinRoomCode").value.trim().toUpperCase();
-      if (!nameVal || !codeVal) return showToast("Credentials Missing", "error");
+      
+      if (!nameVal || !codeVal) {
+        window.hideLoading();
+        return showToast("Credentials Missing", "error");
+      }
+
       try {
         const uid = await requireAuth();
         const ref = db.collection("rmcs_rooms").doc(codeVal);
         const snap = await ref.get();
-        if (!snap.exists) return showToast("Signal Lost (Room Not Found)", "error");
+        
+        if (!snap.exists) {
+          window.hideLoading();
+          return showToast("Signal Lost (Room Not Found)", "error");
+        }
+        
         const data = snap.data();
-        const isVip =
+
+        // --- FIX: Force boolean using !! ---
+        const isVip = !!(
           currentUserData &&
           currentUserData.inventory &&
-          currentUserData.inventory.includes("vip_pass");
+          currentUserData.inventory.includes("vip_pass")
+        );
+
         const roleType =
           uid === data.host ? "host" : isVip ? "vip" : "normal";
+          
         const playerData = {
           id: uid,
           name: nameVal,
           inventory: currentUserData?.inventory || [],
-          isVip,
+          isVip: isVip, // Now guaranteed to be true/false
           nameColor: isVip ? "gold" : "white",
           roleType
         };
+
         const players = data.players || [];
         const pending = data.pendingJoins || [];
         const alreadyPlayer = players.some((p) => p.id === uid);
         const alreadyPending = pending.some((p) => p.id === uid);
-        if (!alreadyPlayer && players.length >= MAX_PLAYERS) {
-          return showToast(`Squad Full (${players.length}/${MAX_PLAYERS})`);
+
+        if (!alreadyPlayer && players.length >= (data.maxPlayers || MAX_PLAYERS)) {
+          window.hideLoading();
+          return showToast("Squad Full", "error");
         }
+
         const visibility = data.visibility || "public";
         const waitingRoomEnabled = !!data.waitingRoomEnabled;
+
         if (!alreadyPlayer && !alreadyPending) {
           if (visibility === "public" && !waitingRoomEnabled) {
             await ref.update({
@@ -786,15 +806,20 @@ document.addEventListener("DOMContentLoaded", function () {
             });
             window.hideLoading();
             showToast("Join request sent. Waiting for host approval.", "success");
+            // Stop here if pending, don't enter room yet essentially
+            // But your UI logic handles pending state in listenToRoom, so proceeding is fine.
           }
         }
+        
         roomId = codeVal;
         listenToRoom(roomId);
         showScreen(gameScreen);
+        window.hideLoading();
+
       } catch (e) {
         window.hideLoading();
         console.error(e);
-        showToast("Connection Failed", "error");
+        showToast("Connection Failed: " + e.message, "error");
       }
     };
   }
