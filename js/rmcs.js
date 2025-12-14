@@ -1518,16 +1518,58 @@ document.addEventListener("DOMContentLoaded", function () {
     if (role === "Civilian") return "👤";
     return "❓";
   }
-  function calculateRoundPoints(roles, isCorrect) {
-    const pts = {};
-    roles.forEach((p) => {
-      if (p.role === "Raja") pts[p.id] = 1000;
-      else if (p.role === "Mantri") pts[p.id] = 800;
-      else if (p.role === "Sipahi") pts[p.id] = isCorrect ? 500 : 0;
-      else if (p.role === "Chor") pts[p.id] = isCorrect ? 0 : 500;
-      else if (p.role === "Civilian") pts[p.id] = 100;
+/**
+   * CALCULATE ROUND SCORES (Updated with Multiplier & Logic)
+   */
+  function calculateRoundPoints(players, isCorrect) {
+    // players is an array of objects: {id, name, role}
+    const playerCount = players.length;
+    
+    // 1. HIGH STAKES MULTIPLIER (For 8+ Players)
+    // If 8 players, points are doubled (x2). Otherwise normal (x1).
+    const multiplier = (playerCount >= 8) ? 2 : 1;
+
+    // Base Points Table
+    const POINTS = {
+        RAJA: 1000,
+        MANTRI: 800,
+        SIPAHI_WIN: 500,
+        SIPAHI_LOSS: 0,
+        CHOR_WIN: 500,  // Chor gets points if Sipahi fails
+        CHOR_LOSS: 0    // Chor gets 0 if caught
+    };
+
+    // 2. Assign Scores
+    let roundScores = {};
+
+    players.forEach(p => {
+        let score = 0;
+
+        // Match Role Names (Case Sensitive based on your file)
+        if (p.role === 'Raja') {
+            score = POINTS.RAJA;
+        } 
+        else if (p.role === 'Mantri') {
+            score = POINTS.MANTRI;
+        } 
+        else if (p.role === 'Sipahi') {
+            // Sipahi gets points ONLY if they catch the thief
+            score = isCorrect ? POINTS.SIPAHI_WIN : POINTS.SIPAHI_LOSS;
+        } 
+        else if (p.role === 'Chor') {
+            // Chor gets points ONLY if Sipahi fails
+            score = isCorrect ? POINTS.CHOR_LOSS : POINTS.CHOR_WIN;
+        }
+        else {
+            // Extra players (Civilian)
+            score = 100; 
+        }
+
+        // Apply Multiplier and Save using p.id
+        roundScores[p.id] = score * multiplier;
     });
-    return pts;
+
+    return roundScores;
   }
   function awardProgress(pointMap, isCorrect) {
     Object.keys(pointMap).forEach((uid) => {
