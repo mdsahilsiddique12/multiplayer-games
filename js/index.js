@@ -1,45 +1,27 @@
 console.log("[1] Index.js LOADED");
 
-// ===========================================================
-// 1. IMMEDIATE REDIRECT CHECK (Run this ASAP)
-// ===========================================================
-if (firebase.auth()) {
-    console.log("[2] Firebase Auth Detected - Checking Redirect...");
-    
-    firebase.auth().getRedirectResult()
-        .then((result) => {
-            if (result.user) {
-                console.log("🎉 [SUCCESS] Redirect Login Verified:", result.user.uid);
-                window.showToast("Login Successful!", "success");
-                // The onAuthStateChanged listener below will handle the UI update
-            } else {
-                console.log("ℹ️ [INFO] Page loaded, but no redirect data found.");
-            }
-        })
-        .catch((error) => {
-            console.error("❌ [CRITICAL] Redirect Failed:", error);
-            window.showToast("Login Error: " + error.message, "error");
-        });
-}
-
-// ===========================================================
-// 2. MAIN LOGIC (Wait for page load)
-// ===========================================================
 document.addEventListener("DOMContentLoaded", function() {
-    console.log("[3] DOM Ready");
+    console.log("[2] DOM Ready");
+    
+    // Initialize Firestore
     const db = firebase.firestore();
 
-    // AUTH STATE LISTENER
+    // -------------------------------------------------------------
+    // AUTH STATE MONITOR (Handles UI updates automatically)
+    // -------------------------------------------------------------
     firebase.auth().onAuthStateChanged(async (user) => {
+        
+        // UI Elements
         const loginBtn = document.getElementById('loginBtn');
         const userInfo = document.getElementById('userInfo');
         const userNameEl = document.getElementById('userName');
         const userCoinsEl = document.getElementById('userCoins');
 
         if (user) {
-            console.log("✅ [STATE] User is Logged In:", user.uid);
+            // >>> USER IS LOGGED IN <<<
+            console.log("✅ [STATE] User Session Active:", user.uid);
 
-            // 1. UI Updates
+            // 1. Update UI
             if(loginBtn) loginBtn.classList.add('hidden');
             if(userInfo) {
                 userInfo.classList.remove('hidden');
@@ -50,12 +32,11 @@ document.addEventListener("DOMContentLoaded", function() {
             // 2. Close Modal
             closeAuthModal();
 
-            // 3. Sync User Profile
+            // 3. Database Sync
             const userRef = db.collection('users').doc(user.uid);
             try {
                 let doc = await userRef.get();
                 if (!doc.exists) {
-                    // Create new profile
                     await userRef.set({
                         username: user.displayName || "Agent",
                         email: user.email || "guest",
@@ -69,6 +50,7 @@ document.addEventListener("DOMContentLoaded", function() {
             } catch (e) { console.error("DB Error:", e); }
 
         } else {
+            // >>> USER IS LOGGED OUT <<<
             console.log("🚫 [STATE] User is Logged Out");
 
             // Reset UI
@@ -77,37 +59,48 @@ document.addEventListener("DOMContentLoaded", function() {
                 userInfo.classList.remove('flex');
             }
             if(loginBtn) loginBtn.classList.remove('hidden');
-            
-            // Open Modal
-            window.openAuthModal();
+
+            // Open Login Modal automatically
+            window.openAuthModal(); 
         }
     });
 });
 
 // ===========================================================
-// 3. SIMPLIFIED LOGIN FUNCTION
+// GLOBAL FUNCTIONS
 // ===========================================================
-window.loginGoogle = function() {
-    console.log("🚀 Initiating Google Redirect...");
-    
-    // Save preference
-    const checkbox = document.getElementById('rememberMeInput');
-    if(checkbox && checkbox.checked) localStorage.setItem('gn_remember', 'true');
-    else localStorage.removeItem('gn_remember');
 
+/**
+ * GOOGLE LOGIN (POPUP MODE)
+ * This is the version that was confirmed to work.
+ */
+window.loginGoogle = function() {
+    console.log("🚀 Starting Google Login (Popup Mode)...");
+    saveRememberMePref();
+    
     const provider = new firebase.auth.GoogleAuthProvider();
 
-    // DIRECT REDIRECT (No complex promise chains)
-    firebase.auth().signInWithRedirect(provider);
+    // Use signInWithPopup because Redirect was being blocked by browser privacy
+    firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+            console.log("Login Success");
+            window.showToast("Login Successful!", "success");
+            // onAuthStateChanged will handle the rest
+        })
+        .catch((error) => {
+            console.error("Login Error:", error);
+            // Ignore the Cross-Origin noise, only show real errors
+            if (error.code !== 'auth/popup-closed-by-user') {
+                window.showToast("Login Error: " + error.message, "error");
+            }
+        });
 };
 
-// ===========================================================
-// 4. OTHER FUNCTIONS
-// ===========================================================
 window.loginGuest = function() {
+    saveRememberMePref();
     const user = firebase.auth().currentUser;
     if (user) {
-        window.showToast("Already logged in.", "info");
+        window.showToast("Session already active.", "info");
         closeAuthModal();
     } else {
         firebase.auth().signInAnonymously()
@@ -122,23 +115,31 @@ window.logoutUser = function() {
     }
 };
 
-// UI Helpers
+// ===========================================================
+// HELPERS & MODALS
+// ===========================================================
+
+function saveRememberMePref() {
+    const checkbox = document.getElementById('rememberMeInput');
+    if(checkbox && checkbox.checked) localStorage.setItem('gn_remember', 'true');
+    else localStorage.removeItem('gn_remember');
+}
+
 window.openAuthModal = function() {
     const modal = document.getElementById('authModal');
     if(modal) {
         modal.classList.remove('hidden');
         modal.style.display = 'flex';
-        // Checkbox logic
         const savedPref = localStorage.getItem('gn_remember') === 'true';
         const checkbox = document.getElementById('rememberMeInput');
         if(checkbox) {
             checkbox.checked = savedPref;
-            window.toggleRememberMe(true);
+            window.toggleRememberMe(true); 
         }
     }
 };
 
-window.closeAuthModal = function() { // Added window. prefix to be safe
+window.closeAuthModal = function() {
     const modal = document.getElementById('authModal');
     if(modal) {
         modal.classList.add('hidden');
@@ -172,6 +173,7 @@ window.launchGame = function(page) {
     window.location.href = page;
 };
 
+// UPGRADE MODAL HANDLERS
 window.openUpgradeModal = function() {
     const modal = document.getElementById('upgradeModal');
     if(modal) {
