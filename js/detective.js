@@ -91,8 +91,7 @@ document.addEventListener("DOMContentLoaded", function() {
   // --- CORE LOGIC ---
   async function auth() { if (!firebase.auth().currentUser) await firebase.auth().signInAnonymously(); myUid = firebase.auth().currentUser.uid; }
   function generateCode() { return Math.random().toString(36).substring(2, 8).toUpperCase(); }
-
-  function enterRoom(code) {
+function enterRoom(code) {
     roomId = code;
     mainMenu.style.display = 'none';
     scorePanel.style.display = 'flex';
@@ -101,12 +100,27 @@ document.addEventListener("DOMContentLoaded", function() {
     
     let lastState = 'waiting';
 
+    // *** MODIFIED LISTENER STARTS HERE ***
     unsubscribe = firestore.collection('detective_rooms').doc(code).onSnapshot(doc => {
       if (!doc.exists) { alert("SESSION ENDED"); location.reload(); return; }
       const data = doc.data();
       
-      if (lastState !== data.state && (data.state === 'playing' || data.state === 'result')) {
-        playTransition();
+      // Handle Transitions
+      if (lastState !== data.state) {
+        if (data.state === 'playing' || data.state === 'result') {
+          playTransition();
+        }
+        
+        // 🏆 NEW: TRIGGER REWARDS ON GAME OVER
+        if (data.state === 'result' && !window.hasClaimedDetectiveReward) {
+            window.hasClaimedDetectiveReward = true; // Lock so we don't claim twice
+            finalizeDetectiveGame(data.players);
+        }
+
+        // Reset lock if game restarts
+        if (data.state === 'waiting') {
+            window.hasClaimedDetectiveReward = false;
+        }
       }
       lastState = data.state;
 
@@ -114,8 +128,8 @@ document.addEventListener("DOMContentLoaded", function() {
       renderScores(data.players);
       renderHistory(data.history);
     });
-  }
-
+    // *** MODIFIED LISTENER ENDS HERE ***
+}
   // --- RENDERERS ---
   function renderScores(players) {
     const sorted = [...players].sort((a, b) => b.score - a.score);
@@ -267,7 +281,29 @@ document.addEventListener("DOMContentLoaded", function() {
       });
     });
   };
-
+  /**
+   * CALCULATE RANK & AWARD REWARDS
+   * Called automatically when the game ends.
+   */
+  function finalizeDetectiveGame(players) {
+    const myUid = firebase.auth().currentUser.uid;
+    const playerCount = players.length;
+  
+    // 1. Sort Players by Score (Highest to Lowest)
+    // We use [...players] to create a copy so we don't break the UI rendering
+    const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+  
+    // 2. Find My Rank
+    // index 0 is Rank 1, so we add 1
+    const myRank = sortedPlayers.findIndex(p => p.id === myUid) + 1;
+  
+    if (myRank > 0) {
+      console.log(`🕵️ Mission Complete. Rank: ${myRank} / ${playerCount}`);
+      
+      // 3. Trigger Economy Reward
+      Economy.awardRanked(myRank, playerCount);
+    }
+  }
   window.startNewRound = async (rid) => {
     const ref = firestore.collection('detective_rooms').doc(rid);
     await ref.update({ state: 'waiting' }); 
