@@ -33,20 +33,42 @@ document.addEventListener("DOMContentLoaded", function() {
             closeAuthModal();
 
             // 3. Database Sync
+            // Database Sync & Daily Reward Logic
             const userRef = db.collection('users').doc(user.uid);
             try {
                 let doc = await userRef.get();
+                
+                // 1. Create Profile if it doesn't exist
                 if (!doc.exists) {
                     await userRef.set({
                         username: user.displayName || "Agent",
                         email: user.email || "guest",
                         coins: 100,
                         xp: 0,
+                        level: 1,
+                        lastLoginDate: null, // New field for tracking
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
+                    doc = await userRef.get();
                 }
-                const data = (await userRef.get()).data();
+
+                // 2. CHECK DAILY REWARD
+                const data = doc.data();
+                const today = new Date().toDateString(); // e.g., "Mon Dec 14 2025"
+                const lastLogin = data.lastLoginDate;
+
+                if (lastLogin !== today) {
+                    // It's a new day! Give reward.
+                    console.log("🎁 Awarding Daily Login Bonus...");
+                    Economy.award('LOGIN_DAILY');
+                    
+                    // Update the date so they can't claim again today
+                    await userRef.update({ lastLoginDate: today });
+                }
+
+                // 3. Update UI
                 if(userCoinsEl) userCoinsEl.innerText = (data.coins || 0) + " CR";
+                
             } catch (e) { console.error("DB Error:", e); }
 
         } else {
