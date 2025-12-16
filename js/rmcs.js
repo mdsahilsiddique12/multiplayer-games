@@ -518,7 +518,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!btn) return;
       const code = btn.getAttribute("data-room-code");
       if (!code) return;
-      showScreen(joinScreen);
+      UI.show("joinScreen");
       const joinCodeInput = getEl("joinRoomCode");
       if (joinCodeInput) joinCodeInput.value = code;
     });
@@ -526,27 +526,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- 6. NAVIGATION / SCREEN SWITCHING ---
   function showScreen(screen) {
-    [mainMenu, createScreen, joinScreen, gameScreen, storeScreen].forEach((s) => {
-      if (s) {
-        s.classList.remove("active-screen");
-        s.style.display = "none";
-      }
-    });
-    if (screen) {
-      screen.style.display = "block";
-      screen.classList.add("active-screen");
+    if (window.UI && typeof UI.show === "function") {
+      UI.show(screen.id);
+      return;
     }
+  
+    // fallback (safety)
+    [mainMenu, createScreen, joinScreen, gameScreen, storeScreen].forEach((s) => {
+      if (s) s.style.display = "none";
+    });
+    if (screen) screen.style.display = "block";
   }
+
   document.querySelectorAll(".create-btn").forEach(
     (b) =>
       (b.onclick = () => {
-        showScreen(createScreen);
+        UI.show("createScreen");
       })
   );
   document.querySelectorAll(".join-btn").forEach(
     (b) =>
       (b.onclick = () => {
-        showScreen(joinScreen);
+        UI.show("joinScreen");
       })
   );
   document.querySelectorAll(".back-btn").forEach(
@@ -2039,7 +2040,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const params = new URLSearchParams(window.location.search);
     const autoRoom = params.get("room");
     if (!autoRoom) return;
-    showScreen(joinScreen);
+    UI.show("joinScreen");
     const joinCodeInput = getEl("joinRoomCode");
     if (joinCodeInput) joinCodeInput.value = autoRoom;
     const waitForAuth = setInterval(() => {
