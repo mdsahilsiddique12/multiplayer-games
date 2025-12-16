@@ -60,7 +60,7 @@ const Economy = {
                 window.showToast(`+${reward.coins} CR | +${reward.xp} XP`, "success");
                 
                 if (didLevelUp) {
-                    Economy.showLevelUpModal(currentLevel, reward.coins * 2); // Bonus coins for leveling up
+                    window.showLevelUpModal(currentLevel, reward.coins * 2); // Bonus coins for leveling up
                 }
             });
         } catch (e) {
