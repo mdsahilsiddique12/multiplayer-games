@@ -10,17 +10,17 @@ document.addEventListener("DOMContentLoaded", function () {
   let currentUserData = null;
   let lastPhase = "";
   const MIN_PLAYERS = 4;
-  const MAX_PLAYERS = 8; 
+  const MAX_PLAYERS = 8;
 
   // NEW: keep track of pending join requests locally (for host)
   let lastPendingJoins = [];
 
   // --- CHAT CONSTANTS (LIMITS + ENCRYPTION) ---
-  const CHAT_HISTORY_LIMIT = 150;          
-  const CHAT_FREE_LIMIT = 80;              
-  const CHAT_VIP_LIMIT = 220;              
-  const CHAT_MAX_MESSAGE_LENGTH = 240;     
-  const CHAT_SECRET = "rmcs_v1_chat_key";  
+  const CHAT_HISTORY_LIMIT = 150;
+  const CHAT_FREE_LIMIT = 80;
+  const CHAT_VIP_LIMIT = 220;
+  const CHAT_MAX_MESSAGE_LENGTH = 240;
+  const CHAT_SECRET = "rmcs_v1_chat_key";
 
   // --- 2. DOM ELEMENTS ---
   const getEl = (id) => document.getElementById(id);
@@ -44,17 +44,17 @@ document.addEventListener("DOMContentLoaded", function () {
   const userCoinsEl = getEl("userCoins");
   const storeGrid = getEl("storeGrid");
   
-  // History & Feedback buttons
+  // UI v2.0 Buttons
   const openHistoryBtn = getEl("openHistoryBtn");
   const publicLobbiesList = getEl("publicLobbiesList");
 
-  // NEW: create‑room options + host join‑request panel
-  const roomVisibilitySelect = getEl("roomVisibility");      
-  const waitingRoomToggle = getEl("waitingRoomToggle");      
-  const requireApprovalCheckbox = getEl("requireApprovalCheckbox"); 
-  const joinRequestsPanel = getEl("joinRequestsPanel");      
+  // Options
+  const roomVisibilitySelect = getEl("roomVisibility");
+  const waitingRoomToggle = getEl("waitingRoomToggle");
+  const requireApprovalCheckbox = getEl("requireApprovalCheckbox");
+  const joinRequestsPanel = getEl("joinRequestsPanel");
 
-  // NEW: CHAT DOM
+  // Chat DOM
   const chatLogEl = getEl("chatLog");
   const chatInputEl = getEl("chatInput");
   const chatSendBtnEl = getEl("chatSendBtn");
@@ -62,8 +62,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   let unsubscribeLobbyList = null;
   const roundTransition = getEl("roundTransition");
-
-  // --- FEEDBACK STATE ---
   let postFeedbackAction = null;
 
   // --- DISCONNECT → REMOVE PLAYER FROM ROOM ---
@@ -82,10 +80,9 @@ document.addEventListener("DOMContentLoaded", function () {
       const newScores = { ...(data.scores || {}) };
       delete newScores[uid];
       const newMuted = (data.muted || []).filter((id) => id !== uid);
-      // also drop from pendingJoins if present
       const oldPending = data.pendingJoins || [];
       const newPending = oldPending.filter((p) => p.id !== uid);
-      // If host leaves, either transfer host or delete room
+      
       if (uid === data.host) {
         if (newPlayers.length === 0) {
           await roomRef.delete();
@@ -114,16 +111,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // NEW: try to clean up when tab closes / refreshes
   window.addEventListener("beforeunload", () => {
     leaveCurrentRoom();
   });
 
-  // Lobby meta labels
   if (roomMaxPlayersEl) roomMaxPlayersEl.textContent = MAX_PLAYERS;
   if (roomMinPlayersEl) roomMinPlayersEl.textContent = MIN_PLAYERS;
 
-  // --- NAME STYLES (HOST / VIP / NORMAL) ---
+  // --- NAME STYLES ---
   const NAME_STYLES = {
     host: `color:#FFD700; border:1px solid #FFD700; text-shadow:0 0 12px rgba(255,215,0,0.8); font-weight:bold;`,
     vip: `background:linear-gradient(90deg,#00E4FF,#FF00FF); -webkit-background-clip:text; color:transparent; border:1px solid rgba(255,0,255,0.4); text-shadow:0 0 10px rgba(0,255,255,0.5);`,
@@ -136,7 +131,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return NAME_STYLES[roleType] || NAME_STYLES.normal;
   }
 
-  // --- LIGHTWEIGHT CHAT ENCRYPTION HELPERS ---
+  // --- CHAT ENCRYPTION ---
   function encryptChatText(plain) {
     try {
       const key = CHAT_SECRET;
@@ -146,10 +141,7 @@ document.addEventListener("DOMContentLoaded", function () {
         out += String.fromCharCode(c);
       }
       return btoa(out);
-    } catch (e) {
-      console.error("encryptChatText failed", e);
-      return "";
-    }
+    } catch (e) { return ""; }
   }
   function decryptChatText(encB64) {
     try {
@@ -161,9 +153,7 @@ document.addEventListener("DOMContentLoaded", function () {
         out += String.fromCharCode(c);
       }
       return out;
-    } catch (e) {
-      return "[message corrupted]";
-    }
+    } catch (e) { return "[corrupted]"; }
   }
 
   // --- 3. SOUND ENGINE ---
@@ -195,9 +185,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // --- 4. AUTH & USER DATA ---
   firebase.auth().onAuthStateChanged(async (user) => {
-    if (user) {
-      await loadUserData(user.uid);
-    }
+    if (user) { await loadUserData(user.uid); }
   });
   async function loadUserData(uid) {
     const userRef = db.collection("users").doc(uid);
@@ -229,7 +217,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // --- AI GAME MASTER TERMINAL ---
+  // --- TERMINAL ---
   function pushTerminalMessage(message, tone = "system") {
     const box = document.getElementById("terminalLog");
     if (!box) return;
@@ -246,14 +234,14 @@ document.addEventListener("DOMContentLoaded", function () {
     while (box.children.length > 25) { box.removeChild(box.lastChild); }
   }
 
-  // --- 5. IN‑GAME SHOP ---
+  // --- 5. STORE ---
   const STORE_ITEMS = [
     { id: "robot_avatar", name: "Robot Avatar", type: "avatars", price: 200, requiresVip: false, emoji: "🤖", desc: "Synthetic operative shell." },
     { id: "alien_avatar", name: "Alien Avatar", type: "avatars", price: 250, requiresVip: true, emoji: "👽", desc: "Classified identity." },
-    { id: "gold_name", name: "Gold Nameplate", type: "colors", price: 300, requiresVip: true, emoji: "🏅", desc: "Mark yourself as high‑value asset." },
+    { id: "gold_name", name: "Gold Nameplate", type: "colors", price: 300, requiresVip: true, emoji: "🏅", desc: "High-value asset." },
     { id: "cyan_name", name: "Neon Cyan Tag", type: "colors", price: 120, requiresVip: false, emoji: "💠", desc: "Clean cyber aesthetic." },
-    { id: "meme_pack", name: "Meme Sound Pack", type: "sounds", price: 180, requiresVip: false, emoji: "😂", desc: "Sabash / Failure / Drum Roll pack." },
-    { id: "vip_pass", name: "VIP Protocol Access", type: "colors", price: 500, requiresVip: false, emoji: "⭐", desc: "Unlock VIP skins & cosmetics." }
+    { id: "meme_pack", name: "Meme Sound Pack", type: "sounds", price: 180, requiresVip: false, emoji: "😂", desc: "Funny SFX pack." },
+    { id: "vip_pass", name: "VIP Protocol Access", type: "colors", price: 500, requiresVip: false, emoji: "⭐", desc: "Unlock VIP skins." }
   ];
   function ownsItem(id) {
     return (currentUserData && Array.isArray(currentUserData.inventory) && currentUserData.inventory.includes(id));
@@ -317,8 +305,6 @@ document.addEventListener("DOMContentLoaded", function () {
       showToast("Purchase successful.", "success");
     } catch (e) { console.error(e); showToast("Purchase failed.", "error"); }
   }
-
-  // Expose filterStore globally
   window.filterStore = function (category) {
     const tabs = document.querySelectorAll(".store-tab");
     tabs.forEach((tab) => {
@@ -368,7 +354,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- 6. NAVIGATION / SCREEN SWITCHING ---
+  // --- 6. NAVIGATION ---
   function showScreen(screen) {
     [mainMenu, createScreen, joinScreen, gameScreen, storeScreen].forEach((s) => {
       if (s) { s.classList.remove("active-screen"); s.style.display = "none"; }
@@ -428,7 +414,6 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
       </div>
     `;
-    // We access showCustomModal from ui.js globally
     window.showCustomModal("MISSION DEBRIEF", modalHtml);
 
     setTimeout(() => {
@@ -450,14 +435,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 } catch (e) { showToast("Transmission failed.", "error"); }
                 window.setBtnLoading("gn-submit-feedback-btn", false);
-                document.querySelector('.gn-overlay').style.display='none'; // Close modal
+                document.querySelector('.gn-overlay').style.display='none'; 
                 if (typeof postFeedbackAction === "function") { postFeedbackAction(); postFeedbackAction = null; }
             };
         }
     }, 100);
   }
 
-  // --- 7. CREATE / JOIN LOGIC (With Safety Fixes) ---
+  // --- 7. CREATE / JOIN LOGIC (Safe Boolean) ---
   const createRoomFinal = getEl("createRoomFinal");
   if (createRoomFinal) {
     createRoomFinal.onclick = async () => {
@@ -573,7 +558,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!authUser) return;
       const selfId = authUser.uid;
       
-      // Handle Room Closed / Kicked
       if (!data) {
         if (unsubscribe) { unsubscribe(); unsubscribe = null; }
         postFeedbackAction = () => { showScreen(mainMenu); };
@@ -597,11 +581,9 @@ document.addEventListener("DOMContentLoaded", function () {
       const isHost = selfId === data.host;
       if (roomPlayerCountEl) roomPlayerCountEl.textContent = players.length;
 
-      // Host controls
       if (isHost) renderJoinRequestsPanel(pending, roomRef);
       else if (joinRequestsPanel) joinRequestsPanel.innerHTML = "";
 
-      // UI v2.0: Cancel Room Button
       if (cancelRoomBtn) {
         cancelRoomBtn.style.display = isHost ? "block" : "none";
         cancelRoomBtn.onclick = () => {
@@ -616,14 +598,12 @@ document.addEventListener("DOMContentLoaded", function () {
       }
       if (isHost) bindHostPlayerControls(roomRef);
 
-      // Pending UI
       if (isPending && !isInPlayers) {
         if (gameContent) gameContent.style.display = "flex";
         gameContent.innerHTML = `<div class="flex flex-col items-center"><div class="text-5xl mb-3 animate-pulse">⏳</div><h3 class="font-cyber text-neon-blue">AWAITING APPROVAL</h3></div>`;
         return;
       }
 
-      // Render Chat & Phase
       renderChatLog(data.chat || [], selfId, data.chatMessageCounts || {});
       lastPhase = data.phase;
 
@@ -640,11 +620,18 @@ document.addEventListener("DOMContentLoaded", function () {
           startGameBtn.innerText = canStart ? "INITIATE SEQUENCE" : `WAITING (${players.length}/${MIN_PLAYERS})`;
           startGameBtn.onclick = () => {
             if (!canStart) return;
-            // Role assignment logic
-            const baseRoles = ["Raja", "Mantri", "Chor", "Sipahi"];
-            const extraCount = Math.max(0, players.length - baseRoles.length);
-            const extraRoles = Array.from({ length: extraCount }, () => "Civilian");
-            const roles = [...baseRoles, ...extraRoles].sort(() => Math.random() - 0.5);
+            
+            // --- UPDATED ROLE LOGIC (5-8 Players) ---
+            const playerCount = players.length;
+            let roles = [];
+            const base = ["Raja", "Mantri", "Sipahi", "Chor"];
+            roles.push(...base);
+            if (playerCount >= 5) roles.push("Rani");
+            if (playerCount >= 6) roles.push("Praja");
+            if (playerCount >= 7) roles.push("Jasoos");
+            if (playerCount >= 8) roles.push("Vidushak");
+
+            roles.sort(() => Math.random() - 0.5);
             const pr = players.map((p, i) => ({ id: p.id, name: p.name, role: roles[i] }));
             roomRef.update({ phase: "reveal", playerRoles: pr, revealed: [], guess: null, scoreUpdated: false });
           };
@@ -662,28 +649,44 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- 9. GAME HELPERS ---
+  // --- 9. GAME HELPERS (ICONS) ---
   function getRoleIcon(role) {
     if (role === "Raja") return "👑";
+    if (role === "Rani") return "👸"; // Queen
     if (role === "Mantri") return "🧠";
     if (role === "Sipahi") return "🛡️";
     if (role === "Chor") return "🔪";
-    return "👤";
+    if (role === "Praja") return "👤"; // Civilian
+    if (role === "Jasoos") return "🕵️"; // Spy
+    if (role === "Vidushak") return "🤡"; // Jester
+    return "❓";
   }
 
-  // UPDATED SCORING: 8-Player Multiplier
-  function calculateRoundPoints(players, isCorrect) {
+  // UPDATED SCORING: 8-Player Logic + New Roles
+  function calculateRoundPoints(players, isCorrect, sipahiGuessTargetId) {
     const playerCount = players.length;
     const multiplier = (playerCount >= 8) ? 2 : 1;
-    const POINTS = { RAJA: 1000, MANTRI: 800, SIPAHI_WIN: 500, SIPAHI_LOSS: 0, CHOR_WIN: 500, CHOR_LOSS: 0 };
+    const POINTS = {
+        RAJA: 1000, RANI: 2000, MANTRI: 800,
+        SIPAHI_WIN: 500, SIPAHI_LOSS: 0,
+        CHOR_WIN: 500, CHOR_LOSS: 0,
+        PRAJA: 100, JASOOS: 300,
+        VIDUSHAK_WIN: 1000, VIDUSHAK_LOSS: 0
+    };
     let roundScores = {};
     players.forEach(p => {
         let score = 0;
         if (p.role === 'Raja') score = POINTS.RAJA;
+        else if (p.role === 'Rani') score = POINTS.RANI;
         else if (p.role === 'Mantri') score = POINTS.MANTRI;
+        else if (p.role === 'Praja') score = POINTS.PRAJA;
         else if (p.role === 'Sipahi') score = isCorrect ? POINTS.SIPAHI_WIN : POINTS.SIPAHI_LOSS;
         else if (p.role === 'Chor') score = isCorrect ? POINTS.CHOR_LOSS : POINTS.CHOR_WIN;
-        else score = 100; // Civilians
+        else if (p.role === 'Jasoos') score = POINTS.JASOOS;
+        else if (p.role === 'Vidushak') {
+            const wasAccused = (sipahiGuessTargetId === p.id);
+            score = wasAccused ? POINTS.VIDUSHAK_WIN : POINTS.VIDUSHAK_LOSS;
+        }
         roundScores[p.id] = score * multiplier;
     });
     return roundScores;
@@ -708,14 +711,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const p = data.playerRoles.find((pr) => pr.id === selfId);
     const isRS = p.role === "Raja" || p.role === "Sipahi";
     const amIRevealed = (data.revealed || []).some((r) => r.id === selfId);
-    
-    // Host auto-advance if Raja & Sipahi are revealed
     if (data.host === selfId) {
       const rRev = (data.revealed || []).some(r => r.role === "Raja");
       const sRev = (data.revealed || []).some(r => r.role === "Sipahi");
       if (rRev && sRev) { roomRef.update({ phase: "guess", revealed: [] }); return; }
     }
-
     gameContent.innerHTML = `
       <div class="flex flex-col items-center w-full">
         <div class="text-6xl mb-4">${getRoleIcon(p.role)}</div>
@@ -728,7 +728,6 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
         </div>
       </div>`;
-    
     if(document.getElementById("revealRoleBtn")) {
         document.getElementById("revealRoleBtn").onclick = () => {
             roomRef.update({ revealed: firebase.firestore.FieldValue.arrayUnion({ id: selfId, role: p.role, name: p.name }) });
@@ -753,7 +752,11 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".guess-btn").forEach((btn) => {
       btn.onclick = () => {
         const t = targets.find((tg) => tg.id === btn.dataset.id);
-        roomRef.update({ phase: "roundResult", guess: { sipahiId: p.id, guessedId: t.id, correct: t.role === "Chor", guessedName: t.name }, scoreUpdated: false });
+        roomRef.update({ 
+            phase: "roundResult", 
+            guess: { sipahiId: p.id, guessedId: t.id, correct: t.role === "Chor", guessedName: t.name }, 
+            scoreUpdated: false 
+        });
       };
     });
   }
@@ -765,19 +768,22 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!data.scoreUpdated) { isCorrect ? playSound("caught") : playSound("escaped"); }
 
     if (isHost && !data.scoreUpdated) {
-        const pts = calculateRoundPoints(data.playerRoles, isCorrect);
+        const pts = calculateRoundPoints(data.playerRoles, isCorrect, res.guessedId);
         const newScores = { ...(data.scores || {}) };
         Object.keys(pts).forEach(uid => newScores[uid] = (newScores[uid] || 0) + pts[uid]);
         roomRef.update({
             scores: newScores, scoreUpdated: true,
-            history: firebase.firestore.FieldValue.arrayUnion({ result: isCorrect ? "Caught" : "Escaped", timestamp: firebase.firestore.FieldValue.serverTimestamp(), roles: data.playerRoles.map(p => ({ id: p.id, name: p.name, role: p.role, points: pts[p.id] || 0 })) })
+            history: firebase.firestore.FieldValue.arrayUnion({ 
+                result: isCorrect ? "Caught" : "Escaped", 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(), 
+                roles: data.playerRoles.map(p => ({ id: p.id, name: p.name, role: p.role, points: pts[p.id] || 0 })) 
+            })
         });
         awardProgress(pts, isCorrect);
     }
     const resultText = isCorrect ? "TARGET NEUTRALIZED" : "MISSION FAILED";
     const resultColor = isCorrect ? "text-neon-green" : "text-red-500";
     
-    // Only show result summary, then Restart Button for host
     gameContent.innerHTML = `
       <div class="flex flex-col items-center w-full max-w-sm">
         <div class="text-6xl mb-2">${isCorrect ? "🎯" : "🤡"}</div>
@@ -787,11 +793,17 @@ document.addEventListener("DOMContentLoaded", function () {
       
     if (isHost && document.getElementById("rebootBtn")) {
         document.getElementById("rebootBtn").onclick = async () => {
-             // Shuffle roles and restart
-             const baseRoles = ["Raja", "Mantri", "Chor", "Sipahi"];
-             const extraCount = Math.max(0, data.playerRoles.length - baseRoles.length);
-             const extraRoles = Array.from({ length: extraCount }, () => "Civilian");
-             const roles = [...baseRoles, ...extraRoles].sort(() => Math.random() - 0.5);
+             // Restart (Reuse role logic)
+             const playerCount = data.playerRoles.length;
+             let roles = [];
+             const base = ["Raja", "Mantri", "Sipahi", "Chor"];
+             roles.push(...base);
+             if (playerCount >= 5) roles.push("Rani");
+             if (playerCount >= 6) roles.push("Praja");
+             if (playerCount >= 7) roles.push("Jasoos");
+             if (playerCount >= 8) roles.push("Vidushak");
+             
+             roles.sort(() => Math.random() - 0.5);
              const pr = data.playerRoles.map((p, i) => ({ id: p.id, name: p.name, role: roles[i] }));
              await roomRef.update({ phase: "reveal", playerRoles: pr, revealed: [], guess: null, scoreUpdated: false });
         };
@@ -810,7 +822,6 @@ document.addEventListener("DOMContentLoaded", function () {
         window.showCustomModal("MISSION ARCHIVES", modalContent);
         loadRoomHistory(roomId);
         
-        // Bind the dynamic button inside the modal
         setTimeout(() => {
             const showGlobalBtn = document.getElementById("showGlobalBtn");
             const globalWrapper = document.getElementById("globalRankingWrapper");
@@ -844,17 +855,103 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- HELPERS (Loaders) ---
-  // (Keeping loadRoomHistory, loadGlobalRanking, renderPlayersList, renderScoreboard, renderAvatarsTable, renderChatLog... assuming they are standard)
-  async function loadRoomHistory(roomCode) { /* ... (Same logic as provided, just ensure it targets #roomHistoryWrapper) ... */ }
-  async function loadGlobalRanking(targetEl) { /* ... (Same logic as provided) ... */ }
-  function renderPlayersList(players, hostId, selfId, isSelfHost, mutedIds) { /* ... (Same logic as provided) ... */ }
-  function renderScoreboard(scores, players) { /* ... (Same logic as provided) ... */ }
-  function renderAvatarsTable(players, selfId, hostId) { /* ... (Same logic as provided) ... */ }
-  function renderChatLog(chatArr, selfId, countsMap) { /* ... (Same logic as provided) ... */ }
-  function renderJoinRequestsPanel(pending, roomRef) { /* ... (Same logic as provided) ... */ }
+  // --- HELPERS (NOW FULLY IMPLEMENTED) ---
+  async function loadRoomHistory(roomCode) {
+    const wrapper = document.getElementById("roomHistoryWrapper");
+    if (!wrapper) return;
+    try {
+      const roomSnap = await db.collection("rmcs_rooms").doc(roomCode).get();
+      const data = roomSnap.data() || {};
+      const history = (data.history || []).filter(h => Array.isArray(h.roles) && h.roles.length);
+      if (!history.length) { wrapper.innerHTML = '<div class="text-xs text-gray-500 font-mono mb-6">No detailed rounds logged yet.</div>'; return; }
+      wrapper.innerHTML = `<div class="max-h-56 overflow-y-auto border border-gray-800 rounded"><table class="w-full text-xs font-mono"><thead class="bg-black/60"><tr><th class="px-2 py-1 text-left text-gray-400">R#</th><th class="px-2 py-1 text-left text-gray-400">Result</th></tr></thead><tbody>${history.map((h,i)=>`<tr class="border-t border-gray-800"><td class="px-2 py-2 text-gray-500">${i+1}</td><td class="px-2 py-2 ${h.result==='Caught'?'text-neon-green':'text-red-400'}">${h.result}</td></tr>`).join("")}</tbody></table></div>`;
+    } catch (e) { wrapper.innerHTML = '<div class="text-red-400 text-xs font-mono">Failed to load history.</div>'; }
+  }
 
-  // Auto-join
+  async function loadGlobalRanking(targetEl) {
+    try {
+      const usersSnap = await db.collection("users").orderBy("xp", "desc").limit(20).get();
+      if (usersSnap.empty) { targetEl.innerHTML = '<div class="text-xs text-gray-500 font-mono">No agents ranked yet.</div>'; return; }
+      targetEl.innerHTML = `<div class="max-h-48 overflow-y-auto border border-gray-800 rounded mb-4"><table class="w-full text-xs font-mono"><thead class="bg-black/60"><tr><th class="px-2 py-1 text-left text-gray-400">Rank</th><th class="px-2 py-1 text-left text-gray-400">Agent</th><th class="px-2 py-1 text-right text-gray-400">XP</th></tr></thead><tbody>${usersSnap.docs.map((doc,i)=>{const u=doc.data();return `<tr class="border-t border-gray-800"><td class="px-2 py-1 text-gray-500">${i+1}</td><td class="px-2 py-1 text-gray-200">${u.username||"Agent"}</td><td class="px-2 py-1 text-right text-neon-pink">${u.xp||0}</td></tr>`}).join("")}</tbody></table></div>`;
+    } catch (e) { targetEl.innerHTML = '<div class="text-red-400 text-xs font-mono">Failed to load global ranking.</div>'; }
+  }
+
+  function renderPlayersList(players, hostId, selfId, isSelfHost, mutedIds) {
+    if (!playersListEl) return;
+    if (!players || players.length === 0) { playersListEl.innerHTML = '<div class="text-[11px] text-gray-500 italic">Waiting for operatives...</div>'; return; }
+    const mutedSet = new Set(mutedIds || []);
+    playersListEl.innerHTML = players.map(p => {
+        const isHost = p.id === hostId;
+        const isVip = !!p.isVip;
+        const isMuted = mutedSet.has(p.id);
+        const isSelf = p.id === selfId;
+        const tagText = isHost ? "HOST" : isVip ? "VIP" : "AGENT";
+        const tagClass = isHost ? "text-neon-blue" : isVip ? "text-yellow-400" : "text-gray-500";
+        const rightSide = isSelfHost && !isHost ? `<div class="flex gap-2 items-center"><button class="text-[9px] text-red-400 hover:text-red-200 font-bold tracking-[0.2em]" data-kick-id="${p.id}">KICK</button></div>` : `<div class="text-[10px] text-gray-400">● ONLINE</div>`;
+        return `<div class="flex items-center justify-between px-3 py-2 border border-gray-800 rounded-lg bg-black/40 text-xs mb-1 w-full max-w-xs"><div class="flex items-center gap-2"><div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/60 to-purple-500/60 flex items-center justify-center text-[11px]">${p.name.charAt(0).toUpperCase()}</div><div class="flex flex-col"><span class="font-mono" style="${getNameStyleForPlayer(p, hostId)}">${isSelf?"[YOU] ":""}${p.name}</span><span class="text-[9px] ${tagClass} uppercase tracking-[0.2em]">${tagText}</span></div></div>${rightSide}</div>`;
+    }).join("");
+  }
+
+  function renderScoreboard(scores, players) {
+    if (!scoreListEl || !scores) return;
+    const sorted = players.map(p => ({ id: p.id, name: p.name, score: scores[p.id] || 0 })).sort((a, b) => b.score - a.score);
+    scoreListEl.innerHTML = sorted.map((p, i) => `<div class="flex justify-between items-center py-2 border-b border-gray-800/50"><span class="${i===0?"text-neon-green font-bold":"text-gray-400"}">${i+1}. ${p.name}</span><span class="font-mono text-neon-pink">${p.score}</span></div>`).join("");
+  }
+
+  function renderAvatarsTable(players, selfId, hostId) {
+    const table = document.querySelector(".game-table");
+    if (!table) return;
+    table.querySelectorAll(".avatar").forEach(e => e.remove());
+    const N = players.length;
+    if (N === 0) return;
+    const radius = 130;
+    const cx = 160;
+    const cy = 160;
+    const selfIdx = players.findIndex(p => p.id === selfId);
+    players.forEach((p, i) => {
+        const logicalIdx = (i - selfIdx + N) % N;
+        const angle = Math.PI / 2 + (2 * Math.PI * logicalIdx) / N;
+        const x = cx + radius * Math.cos(angle) - 35;
+        const y = cy + radius * Math.sin(angle) - 35;
+        const el = document.createElement("div");
+        el.className = "avatar";
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        let icon = "👤";
+        if (p.inventory) { if (p.inventory.includes("robot_avatar")) icon = "🤖"; else if (p.inventory.includes("alien_avatar")) icon = "👽"; }
+        const isSelf = p.id === selfId;
+        el.innerHTML = `<span class="text-3xl drop-shadow-md">${icon}</span><div class="avatar-name ${isSelf?"avatar-name-self":""}">${p.name}</div>`;
+        if (isSelf) { el.style.borderColor = "#f97316"; el.style.boxShadow = "0 0 20px rgba(249, 115, 22, 0.8)"; }
+        table.appendChild(el);
+    });
+  }
+
+  function renderChatLog(chatArr, selfId, countsMap) {
+    if (!chatLogEl) return;
+    chatLogEl.innerHTML = chatArr.map(m => {
+        const isSelf = m.uid === selfId;
+        const text = decryptChatText(m.enc || "");
+        return `<div class="flex items-start gap-2 ${isSelf?"justify-end":"justify-start"}"><div class="px-2 py-1 rounded border border-gray-800 bg-black/60 max-w-[80%] ${isSelf?"text-neon-blue border-neon-blue/60":"text-gray-200"}"><div class="text-[9px] uppercase tracking-[0.18em] text-gray-400 mb-0.5">${isSelf?"YOU":(m.name||"Agent")}</div><div class="text-[11px] break-words">${text.replace(/</g,"&lt;").replace(/>/g,"&gt;")}</div></div></div>`;
+    }).join("");
+    chatLogEl.scrollTop = chatLogEl.scrollHeight;
+  }
+
+  function renderJoinRequestsPanel(pending, roomRef) {
+    if (!joinRequestsPanel) return;
+    if (!pending || !pending.length) { joinRequestsPanel.innerHTML = '<div class="text-[10px] text-gray-500 italic">No pending requests.</div>'; return; }
+    joinRequestsPanel.innerHTML = pending.map(p => `<div class="border border-gray-800 bg-black/40 rounded px-3 py-2 mb-2 text-xs flex items-center justify-between"><div><div class="text-gray-100 font-mono">${p.name}</div><div class="text-[9px] text-gray-500">ID: ${p.id.substring(0,6)}...</div></div><div class="flex gap-2"><button class="text-[9px] px-2 py-1 border border-neon-green rounded hover:bg-neon-green/20 approve-btn" data-id="${p.id}">ALLOW</button><button class="text-[9px] px-2 py-1 border border-red-500 rounded hover:bg-red-500/20 deny-btn" data-id="${p.id}">DENY</button></div></div>`).join("");
+    joinRequestsPanel.onclick = (e) => {
+        const abtn = e.target.closest(".approve-btn");
+        const dbtn = e.target.closest(".deny-btn");
+        if (!abtn && !dbtn) return;
+        const targetId = (abtn||dbtn).getAttribute("data-id");
+        const player = lastPendingJoins.find(p => p.id === targetId);
+        if (!player) return;
+        if (abtn) roomRef.update({ players: firebase.firestore.FieldValue.arrayUnion(player), pendingJoins: firebase.firestore.FieldValue.arrayRemove(player), [`scores.${player.id}`]: 0 });
+        else roomRef.update({ pendingJoins: firebase.firestore.FieldValue.arrayRemove(player) });
+    };
+  }
+
   (function autoJoinFromUrl() {
     const params = new URLSearchParams(window.location.search);
     const autoRoom = params.get("room");
