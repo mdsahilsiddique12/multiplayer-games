@@ -1,213 +1,256 @@
 /**
  * UI SYSTEM CORE v2.0
- * Centralized interface for Toasts, Modals, Loading States, and Animations.
+ * Centralized UI for Toasts, Modals, Loaders, Buttons, and Overlays
+ * Backward compatible with RMCS & other multiplayer-games
  */
-(function() {
-    // 1. INJECT GLOBAL STYLES
-    const style = document.createElement('style');
-    style.innerHTML = `
-        /* --- TOASTS --- */
-        #gn-toast-container {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            z-index: 20000; display: flex; flex-direction: column; gap: 10px;
-            pointer-events: none; width: 90%; max-width: 400px;
-        }
-        .gn-toast {
-            background: rgba(5, 5, 16, 0.95); border-left: 4px solid #00f3ff;
-            border: 1px solid rgba(255,255,255,0.1); color: #fff;
-            padding: 14px 20px; border-radius: 4px; font-family: 'Rajdhani', sans-serif;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 15px;
-            opacity: 0; transform: translateY(20px); transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-            backdrop-filter: blur(8px); overflow: hidden; pointer-events: auto;
-        }
-        .gn-toast.show { opacity: 1; transform: translateY(0); }
-        .gn-toast.success { border-color: #0aff0a; } .gn-toast.success i { color: #0aff0a; }
-        .gn-toast.error { border-color: #ff003c; } .gn-toast.error i { color: #ff003c; }
-        
-        /* --- GLOBAL OVERLAY (Backdrop) --- */
-        .gn-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
-            z-index: 15000; display: none; align-items: center; justify-content: center;
-            animation: fadeIn 0.2s ease-out;
-        }
 
-        /* --- MODAL BOX --- */
-        .gn-modal-box {
-            background: #050510; border: 2px solid #333; width: 90%; max-width: 500px;
-            padding: 30px; text-align: center; position: relative;
-            box-shadow: 0 0 50px rgba(0,0,0,0.8); transform: scale(0.95);
-            transition: 0.2s; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        .gn-modal-box::before { /* Corner accent */
-            content:''; position: absolute; top:-2px; left:-2px; width:15px; height:15px; 
-            border-top:2px solid #00f3ff; border-left:2px solid #00f3ff;
-        }
-        .gn-modal-title { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: #fff; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .gn-modal-body { font-family: 'Rajdhani', sans-serif; color: #ccc; margin-bottom: 25px; line-height: 1.5; font-size: 1rem; text-align: left; }
-        .gn-modal-actions { display: flex; gap: 15px; justify-content: center; margin-top: 20px; }
-        
-        /* Buttons */
-        .gn-btn {
-            padding: 10px 25px; border: 1px solid #444; background: transparent;
-            color: #ccc; font-family: 'Orbitron', sans-serif; cursor: pointer;
-            transition: 0.2s; text-transform: uppercase; letter-spacing: 1px;
-        }
-        .gn-btn:hover { background: #fff; color: #000; }
-        .gn-btn.primary { border-color: #00f3ff; color: #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.1); }
-        .gn-btn.primary:hover { background: #00f3ff; color: #000; box-shadow: 0 0 30px rgba(0, 243, 255, 0.4); }
-        .gn-btn.danger { border-color: #ff003c; color: #ff003c; }
-        .gn-btn.danger:hover { background: #ff003c; color: #fff; box-shadow: 0 0 30px rgba(255, 0, 60, 0.4); }
+(function () {
+  /* ============================================================
+     1. GLOBAL STYLE INJECTION
+  ============================================================ */
+  const style = document.createElement("style");
+  style.innerHTML = `
+  /* --- TOASTS --- */
+  #gn-toast-container {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    width: 90%;
+    max-width: 420px;
+  }
+  .gn-toast {
+    background: rgba(5,5,16,0.95);
+    border-left: 4px solid #00f3ff;
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #fff;
+    padding: 14px 18px;
+    font-family: 'Rajdhani', sans-serif;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all .3s ease;
+    pointer-events: auto;
+  }
+  .gn-toast.show { opacity:1; transform:translateY(0); }
+  .gn-toast.success { border-color:#00ff7f; }
+  .gn-toast.error { border-color:#ff003c; }
+  .gn-toast.info { border-color:#00f3ff; }
 
-        /* --- LEVEL UP OVERLAY --- */
-        #gn-levelup-container {
-            position: fixed; inset: 0; z-index: 16000; display: none;
-            flex-direction: column; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.92);
-        }
-        .levelup-title {
-            font-family: 'Black Ops One', cursive; font-size: 4rem; color: #ffd700;
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.6); margin-bottom: 0;
-            animation: glitch 1s infinite alternate;
-        }
-        .levelup-num {
-            font-family: 'Orbitron', sans-serif; font-size: 8rem; font-weight: 900;
-            background: linear-gradient(to bottom, #fff, #888); -webkit-background-clip: text; color: transparent;
-            margin: -20px 0; filter: drop-shadow(0 0 20px rgba(0, 243, 255, 0.5));
-        }
-        .levelup-rewards {
-            margin-top: 30px; padding: 15px 30px; border: 1px solid #00f3ff;
-            background: rgba(0, 243, 255, 0.1); color: #00f3ff; font-family: 'Share Tech Mono', monospace;
-            font-size: 1.2rem; letter-spacing: 2px;
-        }
+  /* --- OVERLAY / MODAL --- */
+  .gn-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.85);
+    backdrop-filter: blur(5px);
+    z-index: 15000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .gn-modal-box {
+    background:#050510;
+    border:2px solid #333;
+    width:90%;
+    max-width:520px;
+    padding:28px;
+    box-shadow:0 0 40px rgba(0,0,0,.9);
+    animation: pop .25s ease forwards;
+  }
+  @keyframes pop {
+    from { transform:scale(.9); opacity:0 }
+    to { transform:scale(1); opacity:1 }
+  }
+  .gn-modal-title {
+    font-family:'Orbitron',sans-serif;
+    font-size:1.4rem;
+    color:#fff;
+    border-bottom:1px solid #333;
+    padding-bottom:10px;
+    margin-bottom:15px;
+  }
+  .gn-modal-body {
+    font-family:'Rajdhani',sans-serif;
+    color:#ccc;
+    font-size:1rem;
+    line-height:1.5;
+  }
+  .gn-modal-actions {
+    display:flex;
+    justify-content:center;
+    gap:15px;
+    margin-top:25px;
+  }
 
-        /* --- UTILS --- */
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        @keyframes popIn { from{transform:scale(0.8); opacity:0} to{transform:scale(1); opacity:1} }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .gn-spinner {
-            width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;
-            display: inline-block; margin-right: 8px; vertical-align: middle;
-        }
-    `;
-    document.head.appendChild(style);
+  /* --- BUTTONS --- */
+  .gn-btn {
+    padding:10px 24px;
+    border:1px solid #555;
+    background:transparent;
+    color:#ccc;
+    font-family:'Orbitron';
+    cursor:pointer;
+    transition:.2s;
+  }
+  .gn-btn.primary { border-color:#00f3ff; color:#00f3ff; }
+  .gn-btn.danger { border-color:#ff003c; color:#ff003c; }
+  .gn-btn:hover { background:#fff; color:#000; }
 
-    // 2. CREATE STATIC ELEMENTS
-    const toastContainer = document.createElement('div');
-    toastContainer.id = 'gn-toast-container';
-    document.body.appendChild(toastContainer);
+  /* --- LOADER --- */
+  #gn-global-loader {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.9);
+    z-index:20000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+  }
+  .gn-spinner {
+    width:46px;
+    height:46px;
+    border:3px solid #00f3ff;
+    border-top-color:transparent;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg) } }
 
-    const overlay = document.createElement('div');
-    overlay.className = 'gn-overlay';
-    overlay.innerHTML = `
-        <div class="gn-modal-box">
-            <div class="gn-modal-title" id="gn-m-title">ALERT</div>
-            <div class="gn-modal-body" id="gn-m-body">...</div>
-            <div class="gn-modal-actions" id="gn-m-actions"></div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
+  /* --- LEVEL UP --- */
+  #gn-levelup {
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    background:rgba(0,0,0,.92);
+    z-index:18000;
+  }
+  `;
+  document.head.appendChild(style);
 
-    const levelUpDiv = document.createElement('div');
-    levelUpDiv.id = 'gn-levelup-container';
-    levelUpDiv.innerHTML = `
-        <div class="levelup-title">SYSTEM UPGRADE</div>
-        <div class="levelup-num" id="gn-lvl-num">2</div>
-        <div style="color:#aaa; font-family:'Rajdhani'; letter-spacing:5px;">ACCESS LEVEL INCREASED</div>
-        <div class="levelup-rewards" id="gn-lvl-reward">REWARD: 500 CR</div>
-        <button class="gn-btn primary" style="margin-top:40px; width:200px;" onclick="document.getElementById('gn-levelup-container').style.display='none'">ACKNOWLEDGE</button>
-    `;
-    document.body.appendChild(levelUpDiv);
+  /* ============================================================
+     2. STATIC DOM ELEMENTS
+  ============================================================ */
+  const toastContainer = document.createElement("div");
+  toastContainer.id = "gn-toast-container";
+  document.body.appendChild(toastContainer);
 
-    const loader = document.createElement('div');
-    loader.id = 'gn-global-loader';
-    loader.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:20000;display:none;align-items:center;justify-content:center;flex-direction:column;";
-    loader.innerHTML = `<div style="width:50px;height:50px;border:3px solid #00f3ff;border-top-color:transparent;border-radius:50%;animation:spin 1s infinite linear;"></div><div style="margin-top:15px;color:#fff;font-family:'Orbitron';letter-spacing:2px;" id="gn-loader-text">LOADING...</div>`;
-    document.body.appendChild(loader);
+  const overlay = document.createElement("div");
+  overlay.className = "gn-overlay";
+  overlay.innerHTML = `
+    <div class="gn-modal-box">
+      <div class="gn-modal-title" id="gn-m-title"></div>
+      <div class="gn-modal-body" id="gn-m-body"></div>
+      <div class="gn-modal-actions" id="gn-m-actions"></div>
+    </div>`;
+  document.body.appendChild(overlay);
 
-    // ================= EXPOSED API =================
+  const loader = document.createElement("div");
+  loader.id = "gn-global-loader";
+  loader.innerHTML = `
+    <div class="gn-spinner"></div>
+    <div id="gn-loader-text" style="margin-top:15px;color:#fff;font-family:'Orbitron'">LOADING...</div>`;
+  document.body.appendChild(loader);
 
-    // 1. TOASTS
-    window.showToast = function(msg, type = 'info') {
-        const t = document.createElement('div');
-        t.className = `gn-toast ${type}`;
-        let icon = type === 'success' ? 'fa-check' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-info-circle';
-        t.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
-        toastContainer.appendChild(t);
-        requestAnimationFrame(() => t.classList.add('show'));
-        setTimeout(() => {
-            t.classList.remove('show');
-            setTimeout(() => t.remove(), 300);
-        }, 3000);
+  const levelUp = document.createElement("div");
+  levelUp.id = "gn-levelup";
+  levelUp.innerHTML = `
+    <h1 style="color:#ffd700;font-family:'Orbitron'">LEVEL UP</h1>
+    <h2 id="gn-lvl-num" style="color:#00f3ff;font-size:4rem"></h2>
+    <p id="gn-lvl-reward" style="color:#ccc"></p>
+    <button class="gn-btn primary" style="margin-top:25px">CONTINUE</button>`;
+  document.body.appendChild(levelUp);
+  levelUp.querySelector("button").onclick = () => levelUp.style.display = "none";
+
+  /* ============================================================
+     3. EXPOSED API (STABLE)
+  ============================================================ */
+
+  /* --- TOAST --- */
+  window.showToast = function (msg, type = "info") {
+    const t = document.createElement("div");
+    t.className = `gn-toast ${type}`;
+    t.innerHTML = `<span>${msg}</span>`;
+    toastContainer.appendChild(t);
+    requestAnimationFrame(() => t.classList.add("show"));
+    setTimeout(() => {
+      t.classList.remove("show");
+      setTimeout(() => t.remove(), 300);
+    }, 3000);
+  };
+
+  /* --- CONFIRM MODAL --- */
+  window.confirmAction = function (title, message, onConfirm, danger = false) {
+    document.getElementById("gn-m-title").innerText = title;
+    document.getElementById("gn-m-body").innerText = message;
+
+    const actions = document.getElementById("gn-m-actions");
+    actions.innerHTML = "";
+
+    const cancel = document.createElement("button");
+    cancel.className = "gn-btn";
+    cancel.innerText = "CANCEL";
+    cancel.onclick = () => overlay.style.display = "none";
+
+    const ok = document.createElement("button");
+    ok.className = `gn-btn ${danger ? "danger" : "primary"}`;
+    ok.innerText = danger ? "EXECUTE" : "CONFIRM";
+    ok.onclick = () => {
+      overlay.style.display = "none";
+      onConfirm && onConfirm();
     };
 
-    // 2. CONFIRM ACTION MODAL
-    window.confirmAction = function(title, message, onConfirm, isDanger = false) {
-        document.getElementById('gn-m-title').innerText = title;
-        document.getElementById('gn-m-body').innerText = message;
-        
-        const actions = document.getElementById('gn-m-actions');
-        actions.innerHTML = '';
+    actions.append(cancel, ok);
+    overlay.style.display = "flex";
+  };
 
-        const btnCancel = document.createElement('button');
-        btnCancel.className = 'gn-btn';
-        btnCancel.innerText = 'CANCEL';
-        btnCancel.onclick = () => { overlay.style.display = 'none'; };
+  /* --- CUSTOM MODAL --- */
+  window.showCustomModal = function (title, html) {
+    document.getElementById("gn-m-title").innerText = title;
+    document.getElementById("gn-m-body").innerHTML = html;
+    document.getElementById("gn-m-actions").innerHTML = "";
+    overlay.style.display = "flex";
+  };
 
-        const btnOk = document.createElement('button');
-        btnOk.className = `gn-btn ${isDanger ? 'danger' : 'primary'}`;
-        btnOk.innerText = isDanger ? 'EXECUTE' : 'CONFIRM';
-        btnOk.onclick = () => {
-            overlay.style.display = 'none';
-            if (onConfirm) onConfirm();
-        };
+  window.closeModal = () => overlay.style.display = "none";
 
-        actions.appendChild(btnCancel);
-        actions.appendChild(btnOk);
-        overlay.style.display = 'flex';
-    };
+  /* --- LEVEL UP --- */
+  window.showLevelUp = function (level, reward) {
+    document.getElementById("gn-lvl-num").innerText = `LEVEL ${level}`;
+    document.getElementById("gn-lvl-reward").innerText = `BONUS: +${reward} CR`;
+    levelUp.style.display = "flex";
+  };
 
-    // 3. SHOW CUSTOM HTML MODAL (For History, Feedback, etc.)
-    window.showCustomModal = function(title, htmlContent) {
-        document.getElementById('gn-m-title').innerText = title;
-        document.getElementById('gn-m-body').innerHTML = htmlContent;
-        document.getElementById('gn-m-actions').innerHTML = ''; // Clear default buttons
-        overlay.style.display = 'flex';
-    };
+  /* --- BUTTON LOADING --- */
+  window.setBtnLoading = function (btn, state, text = "PROCESSING...") {
+    const b = typeof btn === "string" ? document.getElementById(btn) : btn;
+    if (!b) return;
+    if (state) {
+      b.dataset.txt = b.innerText;
+      b.innerHTML = `<span class="gn-spinner" style="width:14px;height:14px"></span> ${text}`;
+      b.disabled = true;
+    } else {
+      b.innerText = b.dataset.txt || "SUBMIT";
+      b.disabled = false;
+    }
+  };
 
-    window.closeModal = function() {
-        overlay.style.display = 'none';
-    };
-
-    // 4. LEVEL UP SCREEN
-    window.showLevelUp = function(level, bonus) {
-        document.getElementById('gn-lvl-num').innerText = level;
-        document.getElementById('gn-lvl-reward').innerText = `BONUS REWARD: +${bonus} CR`;
-        levelUpDiv.style.display = 'flex';
-    };
-
-    // 5. BUTTON LOADING STATE
-    window.setBtnLoading = function(btnId, isLoading, loadingText = "PROCESSING...") {
-        const btn = typeof btnId === 'string' ? document.getElementById(btnId) : btnId;
-        if(!btn) return;
-
-        if(isLoading) {
-            btn.dataset.originalText = btn.innerText;
-            btn.innerHTML = `<span class="gn-spinner"></span> ${loadingText}`;
-            btn.disabled = true;
-            btn.style.opacity = '0.7';
-        } else {
-            btn.innerText = btn.dataset.originalText || "SUBMIT";
-            btn.disabled = false;
-            btn.style.opacity = '1';
-        }
-    };
-
-    // 6. GLOBAL LOADER
-    window.showLoading = (text="PROCESSING DATA...") => {
-        document.getElementById('gn-loader-text').innerText = text;
-        loader.style.display = 'flex';
-    };
-    window.hideLoading = () => { loader.style.display = 'none'; };
+  /* --- GLOBAL LOADER --- */
+  window.showLoading = (txt = "PROCESSING...") => {
+    document.getElementById("gn-loader-text").innerText = txt;
+    loader.style.display = "flex";
+  };
+  window.hideLoading = () => loader.style.display = "none";
 
 })();
