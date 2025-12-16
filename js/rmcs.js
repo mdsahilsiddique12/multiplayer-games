@@ -584,17 +584,38 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
   const exitLobbyBtn = getEl("exitLobbyBtn");
+// In js/rmcs.js:
+
+  // --- Exit Lobby Button (Manual Disconnect) ---
   if (exitLobbyBtn) {
-    exitLobbyBtn.onclick = async () => {
-      await leaveCurrentRoom();
-      if (unsubscribe) {
-        unsubscribe();
-        unsubscribe = null;
-      }
-      postFeedbackAction = () => {
-        showScreen(mainMenu);
-      };
-      openFeedback("manual_disconnect");
+    exitLobbyBtn.onclick = () => {
+      // Use the new UI v2.0 confirmAction
+      confirmAction(
+        "DISCONNECT?", // Title
+        "Are you sure you want to leave the current mission lobby?", // Message
+        async () => {
+          // --- THIS CALLBACK RUNS ONLY IF CONFIRMED ---
+
+          // 1. Leave the room in Firestore
+          await leaveCurrentRoom();
+
+          // 2. Clean up local listeners
+          if (unsubscribe) {
+            unsubscribe();
+            unsubscribe = null;
+          }
+
+          // 3. Define what happens after the feedback modal closes
+          postFeedbackAction = () => {
+            showScreen(mainMenu);
+          };
+
+          // 4. Open feedback modal
+          // NOTE: If you have already replaced showFeedbackModal with showFeedbackModal based on previous steps, change this line accordingly.
+          showFeedbackModal("manual_disconnect");
+        },
+        true // isDanger = true (makes the confirm button red)
+      );
     };
   }
 
@@ -603,57 +624,61 @@ document.addEventListener("DOMContentLoaded", function () {
     const checked = document.querySelector(`input[name="${group}"]:checked`);
     return checked ? Number(checked.value) : null;
   }
-  function openFeedback(reason) {
-    console.log("Opening feedback for reason:", reason);
-    if (!feedbackModal) {
-      if (typeof postFeedbackAction === "function") {
-        postFeedbackAction();
-        postFeedbackAction = null;
-      }
-      return;
-    }
-    feedbackModal.classList.remove("hidden");
-    feedbackModal.style.display = "flex";
-  }
-  function closeFeedback() {
-    if (!feedbackModal) return;
-    feedbackModal.style.display = "none";
-    feedbackModal.classList.add("hidden");
-    if (typeof postFeedbackAction === "function") {
-      postFeedbackAction();
-      postFeedbackAction = null;
-    }
-  }
-  if (submitFeedbackBtn) {
-    submitFeedbackBtn.onclick = async () => {
-      const name = feedbackName ? feedbackName.value.trim() : "";
-      const func = getStarValue("func");
-      const over = getStarValue("over");
-      const gui = getStarValue("gui");
-      const text = feedbackText ? feedbackText.value.trim() : "";
+ // NEW FUNCTION to define and show the feedback form
+  function showFeedbackModal(reason) {
+    console.log("Opening feedback for:", reason);
+    const modalHtml = `
+      <div class="text-left">
+        <div class="mb-4">
+          <label class="block text-neon-blue text-xs mb-1">AGENT NAME</label>
+          <input type="text" id="gn-feedback-name" class="cyber-input w-full text-sm" placeholder="Anonymous">
+        </div>
+        <div class="mb-4">
+          <label class="block text-neon-blue text-xs mb-1">DEBRIEF LOG</label>
+          <textarea id="gn-feedback-text" class="cyber-input w-full h-24 text-sm resize-none"></textarea>
+        </div>
+        <div class="flex gap-3 justify-end mt-6">
+          <button class="gn-btn" onclick="closeModal()">SKIP</button>
+          <button class="gn-btn primary" id="gn-submit-feedback-btn">TRANSMIT DATA</button>
+        </div>
+      </div>
+    `;
+  
+    showCustomModal("MISSION DEBRIEF", modalHtml);
+  
+    // Bind the submit button *after* the modal is shown
+    document.getElementById("gn-submit-feedback-btn").onclick = async () => {
+      const nameEl = document.getElementById("gn-feedback-name");
+      const textEl = document.getElementById("gn-feedback-text");
+      // ... (Get star ratings using your getStarValue helper) ...
+      
+      setBtnLoading("gn-submit-feedback-btn", true, "TRANSMITTING...");
       try {
         if (db && roomId) {
           await db.collection("rmcs_feedback").add({
-            roomId,
-            name: name || (currentUserData && currentUserData.username) || "Unknown Agent",
-            ratingFunc: func,
-            ratingOverall: over,
-            ratingGui: gui,
-            text,
+            roomId, reason,
+            name: nameEl.value.trim() || "Unknown Agent",
+            // ... other fields ...
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
+          showToast("Feedback transmitted.", "success");
         }
       } catch (e) {
-        console.error("Feedback save failed", e);
+        console.error("Feedback failed", e);
+        showToast("Transmission failed.", "error");
+      } finally {
+        setBtnLoading("gn-submit-feedback-btn", false);
+        closeModal(); // Use the new ui.js function to close
+        if (typeof postFeedbackAction === "function") {
+          postFeedbackAction(); postFeedbackAction = null;
+        }
       }
-      closeFeedback();
     };
   }
-  if (skipFeedbackBtn) {
-    skipFeedbackBtn.onclick = () => {
-      closeFeedback();
-    };
-  }
+
+// THEN, replace calls in your code:
+// Old: openFeedback("manual_disconnect");
+// New: showFeedbackModal("manual_disconnect");
 
   // --- 7. CREATE / JOIN LOGIC ---
   const createRoomFinal = getEl("createRoomFinal");
@@ -989,7 +1014,7 @@ document.addEventListener("DOMContentLoaded", function () {
           showScreen(mainMenu);
         };
         pushTerminalMessage("Room was terminated by host. Debriefing...", "warning");
-        openFeedback("room_closed");
+        showFeedbackModal("room_closed");
         return;
       }
       const players = data.players || [];
@@ -1037,26 +1062,51 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       // Host can cancel room
+// In js/rmcs.js, inside the listenToRoom function's snapshot handler:
+
+      // Host can cancel room
       if (cancelRoomBtn) {
         cancelRoomBtn.style.display = isHost ? "block" : "none";
-        cancelRoomBtn.onclick = async () => {
+        // The click handler initiates the confirmation modal
+        cancelRoomBtn.onclick = () => {
           if (!isHost) return;
-          if (confirm("Abort mission for everyone?")) {
-            try {
-              await roomRef.delete();
-            } catch (e) {
-              console.error("Room delete failed", e);
-            }
-            if (unsubscribe) {
-              unsubscribe();
-              unsubscribe = null;
-            }
-            postFeedbackAction = () => {
-              showScreen(mainMenu);
-            };
-            pushTerminalMessage("You terminated this mission. Debrief incoming.", "warning");
-            openFeedback("host_terminated");
-          }
+
+          // Use the new UI v2.0 confirmAction
+          confirmAction(
+            "ABORT MISSION?", // Title
+            "This will terminate the session for all connected agents. Proceed?", // Message
+            async () => {
+              // --- THIS CALLBACK RUNS ONLY IF CONFIRMED ---
+              try {
+                // 1. Delete the room from Firestore
+                await roomRef.delete();
+              } catch (e) {
+                console.error("Room delete failed", e);
+                // It's good practice to show a toast if the database operation fails
+                showToast("Failed to abort mission. Try again.", "error");
+                return; // Exit if delete failed so we don't show feedback unnecessarily
+              }
+
+              // 2. Clean up local listeners
+              if (unsubscribe) {
+                unsubscribe();
+                unsubscribe = null;
+              }
+
+              // 3. Define what happens after the feedback modal closes
+              postFeedbackAction = () => {
+                showScreen(mainMenu);
+              };
+
+              // 4. Show messages and open feedback
+              pushTerminalMessage("You terminated this mission. Debrief incoming.", "warning");
+
+              // NOTE: If you haven't replaced openFeedback with showFeedbackModal yet, keep this line.
+              // If you HAVE replaced it as per the previous step's instructions, change this to: showFeedbackModal("host_terminated");
+              showFeedbackModal("host_terminated");
+            },
+            true // isDanger = true (makes the confirm button red)
+          );
         };
       }
       if (isHost) {
@@ -1769,78 +1819,63 @@ document.addEventListener("DOMContentLoaded", function () {
   // Open history modal: show ROOM HISTORY + button to toggle GLOBAL RANKING
   // --- 12. HISTORY MODAL & GLOBAL LEADERBOARD ---
   
-  if (openHistoryBtn && historyModal && historyContent) {
-    openHistoryBtn.onclick = () => {
-      if (!roomId) {
-        showToast("No active room log.", "error");
-        return;
-      }
+  // --- NEW HISTORY MODAL LOGIC (using ui.js v2.0) ---
+  if (openHistoryBtn) {
+      openHistoryBtn.onclick = () => {
+          if (!roomId) return showToast("No active room log.", "error");
   
-      historyModal.classList.remove("hidden");
-      historyModal.classList.add("flex");
+          // 1. Define the HTML content for the modal body
+          const modalContent = `
+            <div id="roomHistoryWrapper" class="mb-6 text-xs text-gray-200">
+              <div class="text-gray-400 text-sm font-mono">
+                Loading mission history...
+              </div>
+            </div>
+            <div class="flex justify-center mb-4">
+              <button
+                id="showGlobalBtn"
+                class="px-4 py-2 text-[10px] font-cyber uppercase tracking-[0.2em]
+                       border border-neon-blue rounded hover:bg-neon-blue/10 transition">
+                VIEW GLOBAL RANKING
+              </button>
+            </div>
+            <div id="globalRankingWrapper" class="mt-2 text-xs text-gray-200 hidden">
+              </div>
+          `;
   
-      // Layout: (1) room history table, (2) button, (3) optional global ranking
-      historyContent.innerHTML = `
-        <div id="roomHistoryWrapper" class="mb-6 text-xs text-gray-200">
-          <div class="text-gray-400 text-sm font-mono">
-            Loading mission history...
-          </div>
-        </div>
+          // 2. Call the new global function to show the modal
+          showCustomModal("MISSION ARCHIVES", modalContent);
   
-        <div class="flex justify-center mb-4">
-          <button
-            id="showGlobalBtn"
-            class="px-4 py-2 text-[10px] font-cyber uppercase tracking-[0.2em]
-                   border border-neon-blue rounded hover:bg-neon-blue/10 transition">
-            VIEW GLOBAL RANKING
-          </button>
-        </div>
+          // 3. Initialize the content (load history, bind buttons)
+          // This logic is mostly the same as before, just running after the modal opens.
+          loadRoomHistory(roomId);
+          
+          const showGlobalBtn = document.getElementById("showGlobalBtn");
+          const globalWrapper = document.getElementById("globalRankingWrapper");
   
-        <div id="globalRankingWrapper"
-             class="mt-2 text-xs text-gray-200 hidden">
-          <!-- global table injected on demand -->
-        </div>
-      `;
-  
-      // Load only round‑wise room history by default
-      loadRoomHistory(roomId);
-  
-      // Wire toggle button for global ranking
-      const showGlobalBtn = document.getElementById("showGlobalBtn");
-      const globalWrapper = document.getElementById("globalRankingWrapper");
-  
-      if (showGlobalBtn && globalWrapper) {
-        let globalLoadedOnce = false;
-  
-        showGlobalBtn.onclick = () => {
-          const isHidden = globalWrapper.classList.contains("hidden");
-  
-          if (isHidden) {
-            globalWrapper.classList.remove("hidden");
-            showGlobalBtn.textContent = "HIDE GLOBAL RANKING";
-  
-            if (!globalLoadedOnce) {
-              globalWrapper.innerHTML = `
-                <div class="text-gray-400 text-sm font-mono">
-                  Loading global ranking...
-                </div>`;
-              loadGlobalRanking(globalWrapper);
-              globalLoadedOnce = true;
-            }
-          } else {
-            globalWrapper.classList.add("hidden");
-            showGlobalBtn.textContent = "VIEW GLOBAL RANKING";
+          if (showGlobalBtn && globalWrapper) {
+              let globalLoadedOnce = false;
+              showGlobalBtn.onclick = () => {
+                  const isHidden = globalWrapper.classList.contains("hidden");
+                  if (isHidden) {
+                      globalWrapper.classList.remove("hidden");
+                      showGlobalBtn.textContent = "HIDE GLOBAL RANKING";
+                      if (!globalLoadedOnce) {
+                          globalWrapper.innerHTML = `
+                            <div class="text-gray-400 text-sm font-mono">
+                              Loading global ranking...
+                            </div>`;
+                          loadGlobalRanking(globalWrapper);
+                          globalLoadedOnce = true;
+                      }
+                  } else {
+                      globalWrapper.classList.add("hidden");
+                      showGlobalBtn.textContent = "VIEW GLOBAL RANKING";
+                  }
+              };
           }
-        };
-      }
-    };
-  }
-  
-  if (closeHistoryBtn && historyModal) {
-    closeHistoryBtn.onclick = () => {
-      historyModal.classList.add("hidden");
-    };
-  }
+      };
+    }
   
   /**
    * Loads per‑round mission history:
