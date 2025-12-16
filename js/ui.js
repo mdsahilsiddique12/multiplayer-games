@@ -1,208 +1,206 @@
 /**
- * Game Nexus UI Manager
- * Handles Toasts, Modals, and overrides native browser alerts.
+ * UI SYSTEM CORE v2.0
+ * Centralized interface for Toasts, Modals, Loading States, and Animations.
  */
-
 (function() {
-    // =========================================
-    // 1. INJECT STYLES (Cyberpunk Theme)
-    // =========================================
+    // 1. INJECT GLOBAL STYLES
     const style = document.createElement('style');
     style.innerHTML = `
-        /* Toast Container */
+        /* --- TOASTS --- */
         #gn-toast-container {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            pointer-events: none; /* Let clicks pass through */
-            width: 90%;
-            max-width: 400px;
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            z-index: 20000; display: flex; flex-direction: column; gap: 10px;
+            pointer-events: none; width: 90%; max-width: 400px;
         }
-
-        /* Toast Item */
         .gn-toast {
-            background: rgba(5, 5, 16, 0.95);
-            border-left: 4px solid var(--neon-blue, #00f3ff);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
-            padding: 14px 20px;
-            border-radius: 4px;
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 1rem;
-            letter-spacing: 1px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: auto;
-            backdrop-filter: blur(5px);
-            position: relative;
-            overflow: hidden;
+            background: rgba(5, 5, 16, 0.95); border-left: 4px solid #00f3ff;
+            border: 1px solid rgba(255,255,255,0.1); color: #fff;
+            padding: 14px 20px; border-radius: 4px; font-family: 'Rajdhani', sans-serif;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 15px;
+            opacity: 0; transform: translateY(20px); transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            backdrop-filter: blur(8px); overflow: hidden; pointer-events: auto;
+        }
+        .gn-toast.show { opacity: 1; transform: translateY(0); }
+        .gn-toast.success { border-color: #0aff0a; } .gn-toast.success i { color: #0aff0a; }
+        .gn-toast.error { border-color: #ff003c; } .gn-toast.error i { color: #ff003c; }
+        
+        /* --- GLOBAL OVERLAY (Backdrop) --- */
+        .gn-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            z-index: 15000; display: none; align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease-out;
         }
 
-        /* Entry Animation Class */
-        .gn-toast.show {
-            opacity: 1;
-            transform: translateY(0);
+        /* --- CONFIRM MODAL --- */
+        .gn-modal-box {
+            background: #050510; border: 2px solid #333; width: 90%; max-width: 450px;
+            padding: 30px; text-align: center; position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8); transform: scale(0.95);
+            transition: 0.2s; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .gn-modal-box::before { /* Corner accent */
+            content:''; position: absolute; top:-2px; left:-2px; width:15px; height:15px; 
+            border-top:2px solid #00f3ff; border-left:2px solid #00f3ff;
+        }
+        .gn-modal-title { font-family: 'Orbitron', sans-serif; font-size: 1.5rem; color: #fff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        .gn-modal-body { font-family: 'Rajdhani', sans-serif; color: #aaa; margin-bottom: 25px; line-height: 1.5; font-size: 1.1rem; }
+        .gn-modal-actions { display: flex; gap: 15px; justify-content: center; }
+        .gn-btn {
+            padding: 10px 25px; border: 1px solid #444; background: transparent;
+            color: #ccc; font-family: 'Orbitron', sans-serif; cursor: pointer;
+            transition: 0.2s; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .gn-btn:hover { background: #fff; color: #000; }
+        .gn-btn.primary { border-color: #00f3ff; color: #00f3ff; box-shadow: 0 0 15px rgba(0, 243, 255, 0.1); }
+        .gn-btn.primary:hover { background: #00f3ff; color: #000; box-shadow: 0 0 30px rgba(0, 243, 255, 0.4); }
+        .gn-btn.danger { border-color: #ff003c; color: #ff003c; }
+        .gn-btn.danger:hover { background: #ff003c; color: #fff; box-shadow: 0 0 30px rgba(255, 0, 60, 0.4); }
+
+        /* --- LEVEL UP OVERLAY --- */
+        #gn-levelup-container {
+            position: fixed; inset: 0; z-index: 16000; display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.92);
+        }
+        .levelup-title {
+            font-family: 'Black Ops One', cursive; font-size: 4rem; color: #ffd700;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.6); margin-bottom: 0;
+            animation: glitch 1s infinite alternate;
+        }
+        .levelup-num {
+            font-family: 'Orbitron', sans-serif; font-size: 8rem; font-weight: 900;
+            background: linear-gradient(to bottom, #fff, #888); -webkit-background-clip: text; color: transparent;
+            margin: -20px 0; filter: drop-shadow(0 0 20px rgba(0, 243, 255, 0.5));
+        }
+        .levelup-rewards {
+            margin-top: 30px; padding: 15px 30px; border: 1px solid #00f3ff;
+            background: rgba(0, 243, 255, 0.1); color: #00f3ff; font-family: 'Share Tech Mono', monospace;
+            font-size: 1.2rem; letter-spacing: 2px;
         }
 
-        /* Scanline Effect */
-        .gn-toast::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 2px;
-            background: rgba(255, 255, 255, 0.1);
-            animation: toastScan 2s linear infinite;
+        /* --- UTILS --- */
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        @keyframes popIn { from{transform:scale(0.8); opacity:0} to{transform:scale(1); opacity:1} }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .gn-spinner {
+            width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite;
+            display: inline-block; margin-right: 8px; vertical-align: middle;
         }
-
-        @keyframes toastScan { 0% { top: 0; } 100% { top: 100%; } }
-
-        /* Types */
-        .gn-toast.success { border-left: 4px solid #0aff0a; box-shadow: 0 0 10px rgba(10, 255, 10, 0.15); }
-        .gn-toast.error   { border-left: 4px solid #ff003c; box-shadow: 0 0 10px rgba(255, 0, 60, 0.15); }
-        .gn-toast.warning { border-left: 4px solid #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.15); }
-        .gn-toast.info    { border-left: 4px solid #00f3ff; box-shadow: 0 0 10px rgba(0, 243, 255, 0.15); }
-
-        /* Icon styling */
-        .gn-toast-icon { font-size: 1.2rem; }
-        .gn-toast.success .gn-toast-icon { color: #0aff0a; }
-        .gn-toast.error .gn-toast-icon   { color: #ff003c; }
-        .gn-toast.warning .gn-toast-icon { color: #ffd700; }
-        .gn-toast.info .gn-toast-icon    { color: #00f3ff; }
     `;
     document.head.appendChild(style);
 
-    // =========================================
-    // 2. CREATE CONTAINER
-    // =========================================
-    const container = document.createElement('div');
-    container.id = 'gn-toast-container';
-    document.body.appendChild(container);
+    // 2. CREATE STATIC ELEMENTS
+    const toastContainer = document.createElement('div');
+    toastContainer.id = 'gn-toast-container';
+    document.body.appendChild(toastContainer);
 
-    // =========================================
-    // 3. TOAST LOGIC
-    // =========================================
-    window.showToast = function(message, type = 'info') {
-        // Create elements
-        const toast = document.createElement('div');
-        toast.className = `gn-toast ${type}`;
+    const overlay = document.createElement('div');
+    overlay.className = 'gn-overlay';
+    overlay.innerHTML = `
+        <div class="gn-modal-box">
+            <div class="gn-modal-title" id="gn-m-title">ALERT</div>
+            <div class="gn-modal-body" id="gn-m-body">...</div>
+            <div class="gn-modal-actions" id="gn-m-actions"></div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
 
-        // Icons based on type
-        let iconHtml = '<i class="fa-solid fa-circle-info"></i>'; // Default
-        if (type === 'success') iconHtml = '<i class="fa-solid fa-check-circle"></i>';
-        if (type === 'error')   iconHtml = '<i class="fa-solid fa-triangle-exclamation"></i>';
-        if (type === 'warning') iconHtml = '<i class="fa-solid fa-bolt"></i>';
+    const levelUpDiv = document.createElement('div');
+    levelUpDiv.id = 'gn-levelup-container';
+    levelUpDiv.innerHTML = `
+        <div class="levelup-title">SYSTEM UPGRADE</div>
+        <div class="levelup-num" id="gn-lvl-num">2</div>
+        <div style="color:#aaa; font-family:'Rajdhani'; letter-spacing:5px;">ACCESS LEVEL INCREASED</div>
+        <div class="levelup-rewards" id="gn-lvl-reward">REWARD: 500 CR</div>
+        <button class="gn-btn primary" style="margin-top:40px; width:200px;" onclick="document.getElementById('gn-levelup-container').style.display='none'">ACKNOWLEDGE</button>
+    `;
+    document.body.appendChild(levelUpDiv);
 
-        toast.innerHTML = `
-            <span class="gn-toast-icon">${iconHtml}</span>
-            <span>${message}</span>
-        `;
+    // ================= EXPOSED API =================
 
-        // Add to DOM
-        container.appendChild(toast);
-
-        // Animate In (small delay to allow DOM render)
-        requestAnimationFrame(() => {
-            toast.classList.add('show');
-        });
-
-        // Play Sound (Optional - very quiet blip)
-        try {
-            // const audio = new Audio('sounds/bubble.mp3'); 
-            // audio.volume = 0.2;
-            // audio.play().catch(() => {});
-        } catch(e) {}
-
-        // Remove after 3.5 seconds
+    // 1. TOASTS
+    window.showToast = function(msg, type = 'info') {
+        const t = document.createElement('div');
+        t.className = `gn-toast ${type}`;
+        let icon = type === 'success' ? 'fa-check' : type === 'error' ? 'fa-triangle-exclamation' : 'fa-info-circle';
+        t.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${msg}</span>`;
+        toastContainer.appendChild(t);
+        
+        // Sound
+        if(window.SonicCore && type === 'error') SonicCore.play('error');
+        
+        requestAnimationFrame(() => t.classList.add('show'));
         setTimeout(() => {
-            toast.classList.remove('show');
-            toast.style.opacity = '0';
-            // Wait for fade out transition before removing from DOM
-            setTimeout(() => {
-                if(toast.parentNode) toast.parentNode.removeChild(toast);
-            }, 300);
-        }, 3500);
+            t.classList.remove('show');
+            setTimeout(() => t.remove(), 300);
+        }, 3000);
     };
 
-    // =========================================
-    // 4. OVERRIDE NATIVE ALERT
-    // =========================================
-    // This ensures existing code in rmcs.js / detective.js works without changes.
-    const originalAlert = window.alert;
-    
-    window.alert = function(message) {
-        // Simple heuristic to guess type based on message content
-        const lowerMsg = String(message).toLowerCase();
-        let type = 'info';
+    // 2. CONFIRM MODAL (Replaces browser confirm)
+    window.confirmAction = function(title, message, onConfirm, isDanger = false) {
+        document.getElementById('gn-m-title').innerText = title;
+        document.getElementById('gn-m-body').innerText = message;
+        
+        const actions = document.getElementById('gn-m-actions');
+        actions.innerHTML = '';
 
-        if (lowerMsg.includes('error') || lowerMsg.includes('fail') || lowerMsg.includes('denied')) {
-            type = 'error';
-        } else if (lowerMsg.includes('success') || lowerMsg.includes('copied') || lowerMsg.includes('welcome')) {
-            type = 'success';
-        } else if (lowerMsg.includes('warning') || lowerMsg.includes('required') || lowerMsg.includes('missing')) {
-            type = 'warning';
-        }
+        const btnCancel = document.createElement('button');
+        btnCancel.className = 'gn-btn';
+        btnCancel.innerText = 'CANCEL';
+        btnCancel.onclick = () => { overlay.style.display = 'none'; };
 
-        window.showToast(message, type);
-        console.log(`[System Alert]: ${message}`); // Log it just in case
+        const btnOk = document.createElement('button');
+        btnOk.className = `gn-btn ${isDanger ? 'danger' : 'primary'}`;
+        btnOk.innerText = isDanger ? 'EXECUTE' : 'CONFIRM';
+        btnOk.onclick = () => {
+            overlay.style.display = 'none';
+            if (onConfirm) onConfirm();
+        };
+
+        actions.appendChild(btnCancel);
+        actions.appendChild(btnOk);
+        
+        overlay.style.display = 'flex';
+        if(window.SonicCore) SonicCore.play('click');
     };
 
-    // =========================================
-    // 5. GLOBAL LOADER (Add this to ui.js)
-    // =========================================
-    const loaderStyle = document.createElement('style');
-    loaderStyle.innerHTML = `
-        #gn-global-loader {
-            position: fixed; inset: 0; 
-            background: rgba(0, 0, 0, 0.85); 
-            backdrop-filter: blur(8px);
-            z-index: 20000;
-            display: none; justify-content: center; align-items: center; flex-direction: column;
-        }
-        .cyber-spinner {
-            width: 50px; height: 50px;
-            border: 3px solid transparent;
-            border-top: 3px solid var(--neon-blue, #00f3ff);
-            border-right: 3px solid var(--neon-blue, #00f3ff);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            box-shadow: 0 0 15px var(--neon-blue, #00f3ff);
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .loader-text {
-            margin-top: 15px; font-family: 'Orbitron', sans-serif; 
-            color: #fff; letter-spacing: 2px; font-size: 0.9rem;
-            animation: pulseText 1.5s infinite;
-        }
-        @keyframes pulseText { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    `;
-    document.head.appendChild(loaderStyle);
+    // 3. LEVEL UP SCREEN
+    window.showLevelUp = function(level, bonus) {
+        document.getElementById('gn-lvl-num').innerText = level;
+        document.getElementById('gn-lvl-reward').innerText = `BONUS REWARD: +${bonus} CR`;
+        levelUpDiv.style.display = 'flex';
+        if(window.SonicCore) SonicCore.play('success'); // or a specific levelup sound
+    };
 
-    // Create Loader Elements
-    const loaderContainer = document.createElement('div');
-    loaderContainer.id = 'gn-global-loader';
-    loaderContainer.innerHTML = `
-        <div class="cyber-spinner"></div>
-        <div class="loader-text" id="gn-loader-text">PROCESSING DATA...</div>
-    `;
-    document.body.appendChild(loaderContainer);
+    // 4. BUTTON LOADING STATE
+    window.setBtnLoading = function(btnId, isLoading, loadingText = "PROCESSING...") {
+        const btn = typeof btnId === 'string' ? document.getElementById(btnId) : btnId;
+        if(!btn) return;
 
-    // Expose Functions
-    window.showLoading = function(text = "PROCESSING...") {
+        if(isLoading) {
+            btn.dataset.originalText = btn.innerText;
+            btn.innerHTML = `<span class="gn-spinner"></span> ${loadingText}`;
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+        } else {
+            btn.innerText = btn.dataset.originalText || "SUBMIT";
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        }
+    };
+
+    // 5. GLOBAL LOADER (For page transitions)
+    const loader = document.createElement('div');
+    loader.id = 'gn-global-loader';
+    loader.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:20000;display:none;align-items:center;justify-content:center;flex-direction:column;";
+    loader.innerHTML = `<div style="width:50px;height:50px;border:3px solid #00f3ff;border-top-color:transparent;border-radius:50%;animation:spin 1s infinite linear;"></div><div style="margin-top:15px;color:#fff;font-family:'Orbitron';letter-spacing:2px;" id="gn-loader-text">LOADING...</div>`;
+    document.body.appendChild(loader);
+
+    window.showLoading = (text="PROCESSING DATA...") => {
         document.getElementById('gn-loader-text').innerText = text;
-        document.getElementById('gn-global-loader').style.display = 'flex';
+        loader.style.display = 'flex';
     };
-
-    window.hideLoading = function() {
-        document.getElementById('gn-global-loader').style.display = 'none';
-    };
+    window.hideLoading = () => { loader.style.display = 'none'; };
 
 })();
