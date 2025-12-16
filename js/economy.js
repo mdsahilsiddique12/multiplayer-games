@@ -114,7 +114,7 @@ const Economy = {
                 if (newXP >= xpThreshold) {
                     currentLevel++;
                     newXP = newXP - xpThreshold;
-                    Economy.showLevelUpModal(currentLevel, coinsEarned);
+                    window.showLevelUp(currentLevel, coinsEarned);
                 }
 
                 t.update(userRef, { coins: newCoins, xp: newXP, level: currentLevel });
@@ -132,32 +132,4 @@ const Economy = {
      * 2. VISUAL LEVEL UP MODAL
      * A flashy cyberpunk overlay when leveling up.
      */
-    showLevelUpModal(newLevel, bonusCoins) {
-        // Create HTML if it doesn't exist
-        if (!document.getElementById('levelUpModal')) {
-            const modal = document.createElement('div');
-            modal.id = 'levelUpModal';
-            modal.innerHTML = `
-                <div style="
-                    position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 99999;
-                    display: flex; flex-direction: column; align-items: center; justify-content: center;
-                    font-family: 'Orbitron', sans-serif; text-align: center;
-                ">
-                    <h1 style="color: #ff003c; font-size: 3rem; text-shadow: 0 0 20px red; margin: 0;">SYSTEM UPGRADE</h1>
-                    <div style="font-size: 6rem; color: #fff; font-weight: bold; margin: 20px 0;">${newLevel}</div>
-                    <p style="color: #00f3ff; font-size: 1.2rem; letter-spacing: 2px;">ACCESS LEVEL INCREASED</p>
-                    <div style="margin-top: 20px; color: #ffd700;">BONUS: +${bonusCoins} CR</div>
-                    <button onclick="document.getElementById('levelUpModal').remove()" style="
-                        margin-top: 40px; padding: 15px 40px; background: transparent; 
-                        border: 2px solid #00f3ff; color: #00f3ff; font-family: 'Orbitron'; 
-                        cursor: pointer; font-size: 1.2rem; transition: 0.3s;
-                    ">ACKNOWLEDGE</button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            
-            // Play Sound
-            // const audio = new Audio('sounds/levelup.mp3'); audio.play();
-        }
-    }
-};
+   
